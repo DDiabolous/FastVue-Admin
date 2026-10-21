@@ -1,0 +1,68 @@
+# Operating system files
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Backend is kept locally until it is ready to publish
+/backend/
+
+# Local editor settings
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# Frontend dependencies, builds and caches
+node_modules/
+dist/
+dist-ssr/
+build/
+.vite/
+.cache/
+*.tsbuildinfo
+
+# Local environment variables; keep templates and the shared demo preset
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.full
+
+# Python environments, bytecode and tool caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+
+# Test output and coverage
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+.nyc_output/
+playwright-report/
+test-results/
+
+# Logs, temporary files and local databases
+logs/
+*.log
+*.pid
+*.pid.lock
+*.tmp
+*.temp
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
