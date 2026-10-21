@@ -5,6 +5,7 @@
       <span v-if="selected" class="selection-chip">已选 {{ selected }} 项</span>
     </div>
     <div class="table-tools">
+      <slot name="tools" />
       <span v-if="total !== undefined" class="table-count">
         共
         <strong>{{ total }}</strong>
@@ -45,7 +46,9 @@
             v-for="column in columns"
             :key="column.prop"
             :model-value="visibleColumns.includes(column.prop)"
-            :disabled="visibleColumns.length === 1 && visibleColumns.includes(column.prop)"
+            :disabled="
+              column.locked || (visibleColumns.length === 1 && visibleColumns.includes(column.prop))
+            "
             @change="(checked) => updateColumn(column.prop, checked)"
           >
             {{ column.label }}

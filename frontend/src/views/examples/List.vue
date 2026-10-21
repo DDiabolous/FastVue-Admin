@@ -21,7 +21,7 @@
         @reset-columns="table.resetColumns"
         @refresh="refresh"
       >
-        <el-button type="primary" @click="edit()">新增记录</el-button>
+        <el-button type="primary" @click="edit()">新增</el-button>
         <el-button type="danger" plain :disabled="!selected.length" @click="removeSelected">
           批量删除
         </el-button>

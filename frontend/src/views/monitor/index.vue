@@ -1,5 +1,12 @@
 <template>
-  <div class="page-container monitor-page">
+  <PageContainer
+    class="business-page business-monitor"
+    title="服务监控示例"
+    description="展示资源指标、服务状态与运行日志。当前数据为本地模拟值，不代表真实监控。"
+  >
+    <template #actions>
+      <el-button :icon="Refresh" @click="refreshHealthMetrics">刷新指标</el-button>
+    </template>
     <!-- Top Hardware Resource Row -->
     <el-row :gutter="16" class="res-row">
       <!-- CPU Usage Card -->
@@ -36,13 +43,15 @@
           <div class="res-inner">
             <div class="res-header">
               <span class="res-title">系统物理内存 (RAM)</span>
-              <el-tag size="small" type="primary" effect="light">{{ metrics.memory.usage }}%</el-tag>
+              <el-tag size="small" type="primary" effect="light">
+                {{ metrics.memory.usage }}%
+              </el-tag>
             </div>
             <div class="res-main">
               <el-progress
                 type="dashboard"
                 :percentage="metrics.memory.usage"
-                color="#3b82f6"
+                color="var(--accent-foreground, var(--primary-color))"
                 :width="120"
               >
                 <template #default="{ percentage }">
@@ -113,8 +122,14 @@
               </div>
             </div>
             <div class="res-footer">
-              <el-button link type="primary" size="small" :icon="Refresh" @click="refreshHealthMetrics">
-                立即刷新检测
+              <el-button
+                link
+                type="primary"
+                size="small"
+                :icon="Refresh"
+                @click="refreshHealthMetrics"
+              >
+                刷新
               </el-button>
             </div>
           </div>
@@ -127,26 +142,28 @@
       <template #header>
         <div class="card-header-flex">
           <div class="title-with-icon">
-            <el-icon color="#2563eb"><Connection /></el-icon>
+            <el-icon color="var(--accent-foreground, var(--primary-color))"><Connection /></el-icon>
             <span>平台核心微服务与数据集群运行状态</span>
           </div>
           <div class="header-tools">
             <el-button size="small" :icon="Cpu" :loading="flushLoading" @click="handleFlushCache">
               释放运行时缓存 (GC)
             </el-button>
-            <el-button size="small" type="primary" plain :icon="Download" @click="handleExportReport">
-              导出健康诊断报告
+            <el-button
+              size="small"
+              type="primary"
+              plain
+              :icon="Download"
+              @click="handleExportReport"
+            >
+              导出报告
             </el-button>
           </div>
         </div>
       </template>
 
       <div class="services-grid">
-        <div
-          v-for="svc in metrics.services"
-          :key="svc.name"
-          class="service-item-box"
-        >
+        <div v-for="svc in metrics.services" :key="svc.name" class="service-item-box">
           <div class="svc-top">
             <div class="svc-title">
               <span class="pulse-badge online"></span>
@@ -180,9 +197,7 @@
             <el-icon color="#38bdf8"><DataBoard /></el-icon>
             <span>中台系统内核及服务实时事件流</span>
           </div>
-          <el-button link type="primary" size="small" @click="clearLogs">
-            清空控制台
-          </el-button>
+          <el-button link type="primary" size="small" @click="clearLogs">清空日志</el-button>
         </div>
       </template>
 
@@ -195,19 +210,15 @@
         </div>
       </div>
     </el-card>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup>
+import PageContainer from '@/components/admin/PageContainer.vue'
+
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import {
-  Connection,
-  Cpu,
-  Download,
-  DataBoard,
-  Refresh
-} from '@element-plus/icons-vue'
+import { Connection, Cpu, Download, DataBoard, Refresh } from '@element-plus/icons-vue'
 import { getSystemMonitorMetrics, addAuditLog } from '@/utils/mockData'
 import { useUserStore } from '@/stores/user'
 
@@ -229,11 +240,36 @@ const refreshHealthMetrics = () => {
 }
 
 const consoleLogs = ref([
-  { ts: '14:35:10', level: 'INFO', module: 'API-Gateway', msg: 'Incoming HTTP GET /api/v1/healthcheck status=200 duration=4ms' },
-  { ts: '14:35:12', level: 'INFO', module: 'MQTT-Broker', msg: 'Client [ent_edge_gw_01] pingreq/pingresp ACK verified, keepalive=60s' },
-  { ts: '14:35:18', level: 'INFO', module: 'Auth-SSO', msg: 'JWT session renewed for operator admin, role=super_admin' },
-  { ts: '14:35:22', level: 'WARN', module: 'Telemetry-Engine', msg: 'Spindle motor CNC-08 vibration spike 4.8mm/s, alert event queued' },
-  { ts: '14:35:25', level: 'INFO', module: 'PostgreSQL-Pool', msg: 'Connection pool active=14, idle=36, max=100. Query load nominal.' }
+  {
+    ts: '14:35:10',
+    level: 'INFO',
+    module: 'API-Gateway',
+    msg: 'Incoming HTTP GET /api/v1/healthcheck status=200 duration=4ms',
+  },
+  {
+    ts: '14:35:12',
+    level: 'INFO',
+    module: 'MQTT-Broker',
+    msg: 'Client [ent_edge_gw_01] pingreq/pingresp ACK verified, keepalive=60s',
+  },
+  {
+    ts: '14:35:18',
+    level: 'INFO',
+    module: 'Auth-SSO',
+    msg: 'JWT session renewed for operator admin, role=super_admin',
+  },
+  {
+    ts: '14:35:22',
+    level: 'WARN',
+    module: 'Telemetry-Engine',
+    msg: 'Spindle motor CNC-08 vibration spike 4.8mm/s, alert event queued',
+  },
+  {
+    ts: '14:35:25',
+    level: 'INFO',
+    module: 'PostgreSQL-Pool',
+    msg: 'Connection pool active=14, idle=36, max=100. Query load nominal.',
+  },
 ])
 
 const handleFlushCache = () => {
@@ -250,7 +286,7 @@ const handleFlushCache = () => {
       target: 'V8/Redis',
       detail: '释放了 1.1GB 无效缓存',
       status: 'success',
-      ip: '192.168.1.108'
+      ip: '192.168.1.108',
     })
   }, 600)
 }
@@ -267,7 +303,7 @@ Node 版本: ${metrics.system.nodeVersion}
 连续运行时间: ${metrics.system.uptime}
 
 核心微服务状态:
-${metrics.services.map(s => `- ${s.name}: [${s.status.toUpperCase()}] 端口:${s.port} 延迟:${s.latency}`).join('\n')}
+${metrics.services.map((s) => `- ${s.name}: [${s.status.toUpperCase()}] 端口:${s.port} 延迟:${s.latency}`).join('\n')}
 =========================================
 `
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
@@ -333,7 +369,7 @@ const clearLogs = () => {
 .progress-sub {
   display: block;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -343,7 +379,7 @@ const clearLogs = () => {
   padding-top: 10px;
   border-top: 1px solid var(--border-light);
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-regular);
   text-align: center;
 }
 
@@ -363,7 +399,7 @@ const clearLogs = () => {
 }
 
 .spec-k {
-  color: #64748b;
+  color: var(--text-regular);
 }
 
 .spec-v {
@@ -434,7 +470,7 @@ const clearLogs = () => {
 }
 
 .svc-prop .k {
-  color: #64748b;
+  color: var(--text-regular);
 }
 
 .svc-prop .v {

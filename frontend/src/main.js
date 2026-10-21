@@ -11,6 +11,7 @@ import { authDirective } from './directives/auth'
 import router from './router'
 import './style.css'
 import './styles/admin.css'
+import './styles/business.css'
 import { useAppStore } from './stores/app'
 
 const app = createApp(App)

@@ -156,7 +156,7 @@ kbd {
   padding: 22px 24px 18px;
   border-bottom-color: var(--border-light);
 }
-.starter-page .data-card .el-card__body {
+.starter-page .data-card > .el-card__body {
   padding-top: 0;
 }
 .starter-page .filter-panel {

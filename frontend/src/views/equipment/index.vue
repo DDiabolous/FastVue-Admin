@@ -1,107 +1,83 @@
 <template>
-  <div class="page-container">
+  <PageContainer
+    class="business-page business-equipment"
+    title="设备管理示例"
+    description="管理设备接入、状态与遥测信息，支持列表和卡片视图。本页使用本地演示数据。"
+  >
+    <template #actions>
+      <el-button :icon="showStats ? ArrowUp : DataAnalysis" @click="showStats = !showStats">
+        {{ showStats ? '收起统计' : '展开统计' }}
+      </el-button>
+    </template>
     <!-- Top KPI Stats Row (Collapsible & Compact) -->
     <el-collapse-transition>
       <div v-show="showStats" class="stats-collapse-wrap">
-        <el-row :gutter="10" class="stats-row">
-          <el-col :xs="24" :sm="12" :md="6">
-            <el-card shadow="never" class="stat-card">
-              <div class="stat-content">
-                <div class="stat-icon-wrap icon-primary">
-                  <el-icon :size="18"><Monitor /></el-icon>
-                </div>
-                <div class="stat-info">
-                  <div class="stat-top-line">
-                    <span class="stat-label">设备接入总台数</span>
-                    <span class="stat-trend positive">全域纳管</span>
-                  </div>
-                  <div class="stat-value-box">
-                    <span class="stat-number">{{ totalEquipmentCount }}</span>
-                    <span class="stat-unit">台</span>
-                  </div>
-                </div>
-              </div>
-            </el-card>
+        <el-row :gutter="16" class="stats-row">
+          <el-col :xs="12" :sm="12" :lg="6">
+            <StatisticCard label="设备接入总台数" unit="台" tone="primary">
+              <template #icon>
+                <el-icon :size="18"><Monitor /></el-icon>
+              </template>
+              {{ totalEquipmentCount }}
+              <template #hint>全域纳管</template>
+            </StatisticCard>
           </el-col>
 
-          <el-col :xs="24" :sm="12" :md="6">
-            <el-card shadow="never" class="stat-card">
-              <div class="stat-content">
-                <div class="stat-icon-wrap icon-success">
-                  <el-icon :size="18"><Connection /></el-icon>
-                </div>
-                <div class="stat-info">
-                  <div class="stat-top-line">
-                    <span class="stat-label">正常在线运行</span>
-                    <span class="stat-trend positive">94.6% 在线</span>
-                  </div>
-                  <div class="stat-value-box">
-                    <span class="stat-number text-success">{{ runningCount }}</span>
-                    <span class="stat-unit">台</span>
-                  </div>
-                </div>
-              </div>
-            </el-card>
+          <el-col :xs="12" :sm="12" :lg="6">
+            <StatisticCard label="正常在线运行" unit="台" tone="success">
+              <template #icon>
+                <el-icon :size="18"><Connection /></el-icon>
+              </template>
+              {{ runningCount }}
+              <template #hint>94.6% 在线</template>
+            </StatisticCard>
           </el-col>
 
-          <el-col :xs="24" :sm="12" :md="6">
-            <el-card shadow="never" class="stat-card">
-              <div class="stat-content">
-                <div class="stat-icon-wrap icon-warning">
-                  <el-icon :size="18"><Warning /></el-icon>
-                </div>
-                <div class="stat-info">
-                  <div class="stat-top-line">
-                    <span class="stat-label">指标预警 / 异常</span>
-                    <span class="stat-trend warning">需关注</span>
-                  </div>
-                  <div class="stat-value-box">
-                    <span class="stat-number text-warning">{{ warningCount }}</span>
-                    <span class="stat-unit">台</span>
-                  </div>
-                </div>
-              </div>
-            </el-card>
+          <el-col :xs="12" :sm="12" :lg="6">
+            <StatisticCard label="指标预警 / 异常" unit="台" tone="warning">
+              <template #icon>
+                <el-icon :size="18"><Warning /></el-icon>
+              </template>
+              {{ warningCount }}
+              <template #hint>需关注</template>
+            </StatisticCard>
           </el-col>
 
-          <el-col :xs="24" :sm="12" :md="6">
-            <el-card shadow="never" class="stat-card">
-              <div class="stat-content">
-                <div class="stat-icon-wrap icon-danger">
-                  <el-icon :size="18"><CircleClose /></el-icon>
-                </div>
-                <div class="stat-info">
-                  <div class="stat-top-line">
-                    <span class="stat-label">网络脱机 / 离线</span>
-                    <span class="stat-trend normal">待复位</span>
-                  </div>
-                  <div class="stat-value-box">
-                    <span class="stat-number text-danger">{{ offlineCount }}</span>
-                    <span class="stat-unit">台</span>
-                  </div>
-                </div>
-              </div>
-            </el-card>
+          <el-col :xs="12" :sm="12" :lg="6">
+            <StatisticCard label="网络脱机 / 离线" unit="台" tone="danger">
+              <template #icon>
+                <el-icon :size="18"><CircleClose /></el-icon>
+              </template>
+              {{ offlineCount }}
+              <template #hint>待复位</template>
+            </StatisticCard>
           </el-col>
         </el-row>
       </div>
     </el-collapse-transition>
 
     <!-- Filter Card (Compact Single Row by Default) -->
-    <el-card shadow="never" class="search-form-card">
-      <el-form :inline="true" :model="queryForm" class="filter-form">
-        <el-form-item label="设备检索">
+
+    <!-- Table Card -->
+    <el-card shadow="never" class="data-card business-data-card">
+      <FilterPanel :model="queryForm" @search="handleSearch">
+        <el-form-item label="关键词">
           <el-input
             v-model="queryForm.keyword"
-            placeholder="设备名称 / 编码 / MAC / 部署位置"
+            placeholder="名称 / 编码 / MAC / 位置"
+            title="支持设备名称、编码、MAC 和部署位置"
             clearable
-            style="width: 220px;"
-            @keyup.enter="handleSearch"
+            style="width: 220px"
           />
         </el-form-item>
 
-        <el-form-item label="设备分类">
-          <el-select v-model="queryForm.category" placeholder="全部类别" clearable style="width: 145px;">
+        <el-form-item label="分类">
+          <el-select
+            v-model="queryForm.category"
+            placeholder="全部类别"
+            clearable
+            style="width: 145px"
+          >
             <el-option label="智能商用终端" value="terminal" />
             <el-option label="环境传感设备" value="sensor" />
             <el-option label="边缘智能网关" value="gateway" />
@@ -111,18 +87,28 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="运行状态">
-          <el-select v-model="queryForm.status" placeholder="全部状态" clearable style="width: 125px;">
-            <el-option label="运行中 (Running)" value="running" />
-            <el-option label="待机中 (Standby)" value="standby" />
-            <el-option label="预警中 (Warning)" value="warning" />
-            <el-option label="已离线 (Offline)" value="offline" />
+        <el-form-item label="状态">
+          <el-select
+            v-model="queryForm.status"
+            placeholder="全部状态"
+            clearable
+            style="width: 125px"
+          >
+            <el-option label="运行" value="running" />
+            <el-option label="待机" value="standby" />
+            <el-option label="预警" value="warning" />
+            <el-option label="离线" value="offline" />
           </el-select>
         </el-form-item>
 
         <template v-if="showMoreFilter">
-          <el-form-item label="通信网络">
-            <el-select v-model="queryForm.networkType" placeholder="全部网络" clearable style="width: 135px;">
+          <el-form-item label="网络">
+            <el-select
+              v-model="queryForm.networkType"
+              placeholder="全部网络"
+              clearable
+              style="width: 135px"
+            >
               <el-option label="5G 全网通" value="5G" />
               <el-option label="Wi-Fi 6" value="Wi-Fi" />
               <el-option label="工业以太网" value="以太网" />
@@ -131,7 +117,7 @@
         </template>
 
         <el-form-item class="form-btn-item">
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+          <el-button type="primary" :icon="Search" native-type="submit">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
           <el-button link type="primary" size="small" @click="showMoreFilter = !showMoreFilter">
             {{ showMoreFilter ? '收起' : '展开' }}
@@ -140,71 +126,59 @@
             </el-icon>
           </el-button>
         </el-form-item>
-      </el-form>
-    </el-card>
-
-    <!-- Table Card -->
-    <el-card shadow="never" class="table-card">
-      <div class="action-bar">
-        <div class="left-actions">
-          <el-button type="primary" :icon="Plus" @click="openCreateModal">
-            登记新设备
-          </el-button>
-          <el-button
-            type="warning"
-            plain
-            :icon="Promotion"
-            :disabled="selectedRows.length === 0"
-            @click="openBatchCommandModal"
-          >
-            批量指令 {{ selectedRows.length > 0 ? `(${selectedRows.length})` : '' }}
-          </el-button>
-          <el-button
-            type="info"
-            plain
-            :icon="Upload"
-            :disabled="selectedRows.length === 0"
-            @click="openBatchOtaModal"
-          >
-            批量OTA
-          </el-button>
-          <el-button
-            type="danger"
-            plain
-            :icon="Delete"
-            :disabled="selectedRows.length === 0"
-            @click="handleBatchDelete"
-          >
-            批量注销
-          </el-button>
-          <el-button :icon="Download" @click="handleExportEquipments">
-            导出设备台账
-          </el-button>
-        </div>
-
-        <div class="right-actions">
-          <el-button
-            link
-            type="primary"
-            size="small"
-            :icon="showStats ? ArrowUp : DataAnalysis"
-            @click="showStats = !showStats"
-          >
-            {{ showStats ? '收起统计' : '展开统计' }}
-          </el-button>
-          <el-divider direction="vertical" />
+      </FilterPanel>
+      <TableToolbar
+        :loading="tableLoading"
+        :total="filteredEquipments.length"
+        :selected="selectedRows.length"
+        :columns="businessTable.columns"
+        v-model:visible-columns="businessTable.visible.value"
+        @reset-columns="businessTable.resetColumns"
+        @refresh="loadEquipmentData"
+      >
+        <el-button type="primary" :icon="Plus" @click="openCreateModal">新增</el-button>
+        <el-button
+          type="warning"
+          plain
+          :icon="Promotion"
+          :disabled="selectedRows.length === 0"
+          @click="openBatchCommandModal"
+        >
+          批量指令
+        </el-button>
+        <el-button
+          type="info"
+          plain
+          :icon="Upload"
+          :disabled="selectedRows.length === 0"
+          @click="openBatchOtaModal"
+        >
+          批量 OTA
+        </el-button>
+        <el-button
+          type="danger"
+          plain
+          :icon="Delete"
+          :disabled="selectedRows.length === 0"
+          @click="handleBatchDelete"
+        >
+          批量注销
+        </el-button>
+        <el-button :icon="Download" @click="handleExportEquipments">导出</el-button>
+        <el-button v-if="selectedRows.length" link @click="clearSelection">清空已选</el-button>
+        <template #tools>
           <el-radio-group v-model="viewMode" size="small">
-            <el-radio-button value="table">列表视图</el-radio-button>
-            <el-radio-button value="card">拓扑卡片</el-radio-button>
+            <el-radio-button value="table">列表</el-radio-button>
+            <el-radio-button value="card">卡片</el-radio-button>
           </el-radio-group>
-          <el-tooltip content="刷新数据" placement="top">
-            <el-button circle size="small" :icon="RefreshRight" @click="loadEquipmentData" style="margin-left: 8px;" />
-          </el-tooltip>
-        </div>
-      </div>
+        </template>
+      </TableToolbar>
 
       <!-- Table View Mode -->
       <el-table
+        ref="tableRef"
+        border
+        @header-dragend="businessTable.resize"
         v-if="viewMode === 'table'"
         v-loading="tableLoading"
         :data="paginatedEquipments"
@@ -215,7 +189,14 @@
       >
         <el-table-column type="selection" width="48" align="center" />
 
-        <el-table-column label="设备信息" min-width="210">
+        <el-table-column
+          label="设备信息"
+          min-width="210"
+          key="deviceInfo"
+          v-if="businessTable.isColumnVisible('deviceInfo')"
+          :width="businessTable.columnWidth('deviceInfo', undefined)"
+          prop="deviceInfo"
+        >
           <template #default="{ row }">
             <div class="device-cell">
               <div class="device-icon-box" :class="getCategoryIconClass(row.category)">
@@ -229,13 +210,26 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="deviceCode" label="设备编码" width="160">
+        <el-table-column
+          prop="deviceCode"
+          label="设备编码"
+          key="deviceCode"
+          v-if="businessTable.isColumnVisible('deviceCode')"
+          :width="businessTable.columnWidth('deviceCode', 160)"
+        >
           <template #default="{ row }">
             <span class="code-tag">{{ row.deviceCode }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="设备分类" width="130" align="center">
+        <el-table-column
+          label="设备分类"
+          align="center"
+          key="category"
+          v-if="businessTable.isColumnVisible('category')"
+          :width="businessTable.columnWidth('category', 130)"
+          prop="category"
+        >
           <template #default="{ row }">
             <el-tag size="small" effect="plain" class="category-tag">
               {{ row.categoryName }}
@@ -243,7 +237,14 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="网络与信号" min-width="160">
+        <el-table-column
+          label="网络与信号"
+          min-width="160"
+          key="connection"
+          v-if="businessTable.isColumnVisible('connection')"
+          :width="businessTable.columnWidth('connection', undefined)"
+          prop="connection"
+        >
           <template #default="{ row }">
             <div class="network-cell">
               <div class="net-row">
@@ -262,7 +263,14 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="遥测负荷" min-width="150">
+        <el-table-column
+          label="遥测负荷"
+          min-width="150"
+          key="telemetry"
+          v-if="businessTable.isColumnVisible('telemetry')"
+          :width="businessTable.columnWidth('telemetry', undefined)"
+          prop="telemetry"
+        >
           <template #default="{ row }">
             <div class="telemetry-compact">
               <div class="load-line">
@@ -271,24 +279,41 @@
                   :percentage="row.cpuLoad"
                   :color="getProgressColor(row.cpuLoad)"
                   :stroke-width="5"
-                  style="width: 70px;"
+                  style="width: 70px"
                 />
               </div>
               <div class="temp-line">
-                <span>温度: <strong>{{ row.temperature > 0 ? row.temperature + '℃' : '-' }}</strong></span>
+                <span>
+                  温度:
+                  <strong>{{ row.temperature > 0 ? row.temperature + '℃' : '-' }}</strong>
+                </span>
                 <span v-if="row.battery < 100" class="battery-sub">电量: {{ row.battery }}%</span>
               </div>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="firmwareVersion" label="固件版本" width="130" align="center">
+        <el-table-column
+          prop="firmwareVersion"
+          label="固件版本"
+          align="center"
+          key="firmwareVersion"
+          v-if="businessTable.isColumnVisible('firmwareVersion')"
+          :width="businessTable.columnWidth('firmwareVersion', 130)"
+        >
           <template #default="{ row }">
             <span class="firmware-tag">{{ row.firmwareVersion }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="运行状态" width="115" align="center">
+        <el-table-column
+          label="运行状态"
+          align="center"
+          key="status"
+          v-if="businessTable.isColumnVisible('status')"
+          :width="businessTable.columnWidth('status', 115)"
+          prop="status"
+        >
           <template #default="{ row }">
             <el-tag :type="getStatusTagType(row.status)" effect="light">
               <span class="status-dot" :class="row.status" />
@@ -297,7 +322,14 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="远程电源" width="90" align="center">
+        <el-table-column
+          label="远程电源"
+          align="center"
+          key="power"
+          v-if="businessTable.isColumnVisible('power')"
+          :width="businessTable.columnWidth('power', 90)"
+          prop="power"
+        >
           <template #default="{ row }">
             <el-switch
               v-model="row.powerStatus"
@@ -310,13 +342,27 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="location" label="部署物理位置" min-width="170" show-overflow-tooltip />
+        <el-table-column
+          prop="location"
+          label="部署物理位置"
+          min-width="170"
+          show-overflow-tooltip
+          key="location"
+          v-if="businessTable.isColumnVisible('location')"
+          :width="businessTable.columnWidth('location', undefined)"
+        />
 
         <!-- Operations Column (Streamlined to 3 clear actions, strictly in one horizontal row) -->
         <el-table-column label="操作" width="215" fixed="right" align="center">
           <template #default="{ row }">
             <div class="table-op-btns">
-              <el-button link type="primary" size="small" :icon="Odometer" @click="openTelemetryDrawer(row)">
+              <el-button
+                link
+                type="primary"
+                size="small"
+                :icon="Odometer"
+                @click="openTelemetryDrawer(row)"
+              >
                 调测
               </el-button>
               <el-button link type="primary" size="small" :icon="Edit" @click="openEditModal(row)">
@@ -330,14 +376,19 @@
                 @confirm="handleDeleteEquipmentRow(row)"
               >
                 <template #reference>
-                  <el-button link type="danger" size="small" :icon="Delete">
-                    删除
-                  </el-button>
+                  <el-button link type="danger" size="small" :icon="Delete">删除</el-button>
                 </template>
               </el-popconfirm>
             </div>
           </template>
         </el-table-column>
+        <template #empty>
+          <TableEmpty
+            :loading="tableLoading"
+            :filtered="businessTable.isFiltered.value"
+            @reset="handleReset"
+          />
+        </template>
       </el-table>
 
       <!-- Card View Mode -->
@@ -354,8 +405,8 @@
                 <el-icon :size="18"><component :is="getCategoryIcon(item.category)" /></el-icon>
               </div>
               <div class="header-title-box">
-                <span class="card-device-name">{{ item.name }}</span>
-                <span class="card-device-code">{{ item.deviceCode }}</span>
+                <span class="card-device-name" :title="item.name">{{ item.name }}</span>
+                <span class="card-device-code" :title="item.deviceCode">{{ item.deviceCode }}</span>
               </div>
             </div>
             <el-tag :type="getStatusTagType(item.status)" size="small">
@@ -383,17 +434,21 @@
 
             <div class="grid-loc-line">
               <el-icon><Location /></el-icon>
-              <span>{{ item.location }}</span>
+              <span :title="item.location">{{ item.location }}</span>
             </div>
           </div>
 
           <div class="grid-card-footer">
-            <el-button size="small" type="primary" plain :icon="Odometer" @click="openTelemetryDrawer(item)">
+            <el-button
+              size="small"
+              type="primary"
+              plain
+              :icon="Odometer"
+              @click="openTelemetryDrawer(item)"
+            >
               远程调测
             </el-button>
-            <el-button size="small" :icon="Edit" @click="openEditModal(item)">
-              编辑
-            </el-button>
+            <el-button size="small" :icon="Edit" @click="openEditModal(item)">编辑</el-button>
             <el-button size="small" :icon="Refresh" @click="handleQuickReboot(item)">
               重启
             </el-button>
@@ -402,33 +457,42 @@
       </div>
 
       <!-- Pagination -->
-      <div class="pagination-footer">
+      <TableEmpty
+        v-if="viewMode === 'card' && !filteredEquipments.length"
+        :loading="tableLoading"
+        :filtered="businessTable.isFiltered.value"
+        @reset="handleReset"
+      />
+      <div class="business-pagination">
         <span class="page-total-text">
-          已纳管检索共 <strong>{{ filteredEquipments.length }}</strong> 台硬件终端设备
+          已纳管检索共
+          <strong>{{ filteredEquipments.length }}</strong>
+          台硬件终端设备
         </span>
         <el-pagination
           v-model:current-page="pagination.currentPage"
           v-model:page-size="pagination.pageSize"
           :page-sizes="[6, 12, 24, 48]"
           :total="filteredEquipments.length"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-          small
+          layout="total, sizes, prev, pager, next"
         />
       </div>
     </el-card>
 
     <!-- Telemetry & Remote Control Drawer -->
     <el-drawer
+      class="business-overlay"
       v-model="drawerVisible"
       title="设备实时遥测调测面板与指令下发"
-      size="500px"
+      size="min(560px, 100vw)"
       destroy-on-close
     >
       <div v-if="currentEquipment" class="drawer-content">
         <div class="drawer-header-device">
           <div class="device-icon-box lg" :class="getCategoryIconClass(currentEquipment.category)">
-            <el-icon :size="24"><component :is="getCategoryIcon(currentEquipment.category)" /></el-icon>
+            <el-icon :size="24">
+              <component :is="getCategoryIcon(currentEquipment.category)" />
+            </el-icon>
           </div>
           <div class="drawer-header-meta">
             <div class="name-status-row">
@@ -437,30 +501,42 @@
                 {{ getStatusLabel(currentEquipment.status) }}
               </el-tag>
             </div>
-            <span class="sub-code">资产编码: {{ currentEquipment.deviceCode }} · 型号: {{ currentEquipment.model }}</span>
+            <span class="sub-code">
+              资产编码: {{ currentEquipment.deviceCode }} · 型号: {{ currentEquipment.model }}
+            </span>
             <span class="sub-loc">部署位置: {{ currentEquipment.location }}</span>
           </div>
         </div>
 
         <el-divider content-position="left">实时遥测运行参数</el-divider>
         <el-row :gutter="12" class="telemetry-cards">
-          <el-col :span="8">
+          <el-col :xs="24" :sm="8">
             <div class="telemetry-box">
               <span class="t-label">CPU 负载率</span>
               <span class="t-value" :style="{ color: getProgressColor(currentEquipment.cpuLoad) }">
                 {{ currentEquipment.cpuLoad }}%
               </span>
-              <el-progress :percentage="currentEquipment.cpuLoad" :color="getProgressColor(currentEquipment.cpuLoad)" :show-text="false" :stroke-width="4" />
+              <el-progress
+                :percentage="currentEquipment.cpuLoad"
+                :color="getProgressColor(currentEquipment.cpuLoad)"
+                :show-text="false"
+                :stroke-width="4"
+              />
             </div>
           </el-col>
-          <el-col :span="8">
+          <el-col :xs="24" :sm="8">
             <div class="telemetry-box">
               <span class="t-label">系统内存</span>
               <span class="t-value text-primary">{{ currentEquipment.memoryLoad }}%</span>
-              <el-progress :percentage="currentEquipment.memoryLoad" color="#3b82f6" :show-text="false" :stroke-width="4" />
+              <el-progress
+                :percentage="currentEquipment.memoryLoad"
+                color="var(--accent-foreground, var(--primary-color))"
+                :show-text="false"
+                :stroke-width="4"
+              />
             </div>
           </el-col>
-          <el-col :span="8">
+          <el-col :xs="24" :sm="8">
             <div class="telemetry-box">
               <span class="t-label">核心工作温升</span>
               <span class="t-value" :class="{ 'text-danger': currentEquipment.temperature > 65 }">
@@ -473,17 +549,35 @@
 
         <el-divider content-position="left">硬件与网络规格</el-divider>
         <el-descriptions :column="1" border size="small">
-          <el-descriptions-item label="设备物理 MAC">{{ currentEquipment.macAddress }}</el-descriptions-item>
-          <el-descriptions-item label="分配 IP 地址">{{ currentEquipment.ip }}</el-descriptions-item>
-          <el-descriptions-item label="接入通信网络">{{ currentEquipment.networkType }}</el-descriptions-item>
-          <el-descriptions-item label="固件版本号">{{ currentEquipment.firmwareVersion }}</el-descriptions-item>
-          <el-descriptions-item label="已持续在线时长">{{ currentEquipment.onlineDuration }}</el-descriptions-item>
-          <el-descriptions-item label="最近心跳上报">{{ currentEquipment.lastHeartbeat }}</el-descriptions-item>
+          <el-descriptions-item label="设备物理 MAC">
+            {{ currentEquipment.macAddress }}
+          </el-descriptions-item>
+          <el-descriptions-item label="分配 IP 地址">
+            {{ currentEquipment.ip }}
+          </el-descriptions-item>
+          <el-descriptions-item label="接入通信网络">
+            {{ currentEquipment.networkType }}
+          </el-descriptions-item>
+          <el-descriptions-item label="固件版本号">
+            {{ currentEquipment.firmwareVersion }}
+          </el-descriptions-item>
+          <el-descriptions-item label="已持续在线时长">
+            {{ currentEquipment.onlineDuration }}
+          </el-descriptions-item>
+          <el-descriptions-item label="最近心跳上报">
+            {{ currentEquipment.lastHeartbeat }}
+          </el-descriptions-item>
         </el-descriptions>
 
         <el-divider content-position="left">远程运维与指令下发</el-divider>
         <div class="control-actions-grid">
-          <el-button type="warning" plain :icon="Refresh" :loading="rebooting" @click="handleRebootDevice">
+          <el-button
+            type="warning"
+            plain
+            :icon="Refresh"
+            :loading="rebooting"
+            @click="handleRebootDevice"
+          >
             重启设备系统
           </el-button>
           <el-button type="primary" plain :icon="Upload" @click="openOtaModal(currentEquipment)">
@@ -510,9 +604,12 @@
 
     <!-- Create / Edit Device Dialog -->
     <el-dialog
+      :before-close="formDraft.beforeClose"
+      :close-on-click-modal="false"
+      class="business-overlay"
       v-model="deviceDialogVisible"
       :title="isEditMode ? '编辑设备参数' : '登记新硬件设备'"
-      width="580px"
+      width="min(600px, 94vw)"
       destroy-on-close
     >
       <el-form
@@ -520,15 +617,15 @@
         :model="deviceFormData"
         :rules="deviceFormRules"
         label-width="100px"
-        style="padding: 10px 10px 0;"
+        style="padding: 10px 10px 0"
       >
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :xs="24" :sm="12">
             <el-form-item label="设备名称" prop="name">
               <el-input v-model="deviceFormData.name" placeholder="如: 智能收银终端-02" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :xs="24" :sm="12">
             <el-form-item label="设备编码" prop="deviceCode">
               <el-input v-model="deviceFormData.deviceCode" placeholder="如: POS-SH-2026-XXX" />
             </el-form-item>
@@ -536,9 +633,9 @@
         </el-row>
 
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :xs="24" :sm="12">
             <el-form-item label="设备分类" prop="category">
-              <el-select v-model="deviceFormData.category" style="width: 100%;">
+              <el-select v-model="deviceFormData.category" style="width: 100%">
                 <el-option label="智能商用终端" value="terminal" />
                 <el-option label="环境传感设备" value="sensor" />
                 <el-option label="边缘智能网关" value="gateway" />
@@ -548,7 +645,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :xs="24" :sm="12">
             <el-form-item label="硬件型号" prop="model">
               <el-input v-model="deviceFormData.model" placeholder="如: SmartPOS-Ultra-X8" />
             </el-form-item>
@@ -556,9 +653,9 @@
         </el-row>
 
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :xs="24" :sm="12">
             <el-form-item label="通信网络" prop="networkType">
-              <el-select v-model="deviceFormData.networkType" style="width: 100%;">
+              <el-select v-model="deviceFormData.networkType" style="width: 100%">
                 <el-option label="5G 全网通 + Wi-Fi 6" value="5G 全网通 + Wi-Fi 6" />
                 <el-option label="工业级千兆以太网" value="工业级千兆以太网" />
                 <el-option label="Wi-Fi 6 双频" value="Wi-Fi 6 双频" />
@@ -566,7 +663,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :xs="24" :sm="12">
             <el-form-item label="IP 地址" prop="ip">
               <el-input v-model="deviceFormData.ip" placeholder="192.168.10.X" />
             </el-form-item>
@@ -574,12 +671,12 @@
         </el-row>
 
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :xs="24" :sm="12">
             <el-form-item label="MAC 地址" prop="macAddress">
               <el-input v-model="deviceFormData.macAddress" placeholder="00:1B:44:XX:XX:XX" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :xs="24" :sm="12">
             <el-form-item label="固件版本" prop="firmwareVersion">
               <el-input v-model="deviceFormData.firmwareVersion" placeholder="v2.8.4" />
             </el-form-item>
@@ -587,12 +684,21 @@
         </el-row>
 
         <el-form-item label="部署位置" prop="location">
-          <el-input v-model="deviceFormData.location" placeholder="如: 华东旗舰展厅 智慧收银区A-01" />
+          <el-input
+            v-model="deviceFormData.location"
+            placeholder="如: 华东旗舰展厅 智慧收银区A-01"
+          />
         </el-form-item>
 
         <el-form-item label="快捷指令" v-if="isEditMode">
-          <div style="display: flex; gap: 8px;">
-            <el-button size="small" type="warning" plain :icon="Refresh" @click="handleRebootFromEdit">
+          <div style="display: flex; gap: 8px">
+            <el-button
+              size="small"
+              type="warning"
+              plain
+              :icon="Refresh"
+              @click="handleRebootFromEdit"
+            >
               重启此设备
             </el-button>
             <el-button size="small" type="primary" plain :icon="Upload" @click="handleOtaFromEdit">
@@ -612,7 +718,7 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="deviceDialogVisible = false">取消</el-button>
+        <el-button @click="formDraft.close">取消</el-button>
         <el-button type="primary" :loading="submitLoading" @click="handleSaveDevice">
           确认保存
         </el-button>
@@ -620,15 +726,23 @@
     </el-dialog>
 
     <!-- OTA Firmware Dialog -->
-    <el-dialog v-model="otaDialogVisible" title="下发固件 OTA 远程升级" width="450px">
-      <div style="padding: 10px 10px 0;">
-        <p style="margin-bottom: 14px; font-size: 13.5px; color: var(--text-regular);">
-          目标升级目标: <strong>{{ targetOtaDevice ? targetOtaDevice.name : `已选 ${selectedRows.length} 台设备` }}</strong>
+    <el-dialog
+      class="business-overlay"
+      v-model="otaDialogVisible"
+      title="下发固件 OTA 远程升级"
+      width="min(480px, 94vw)"
+    >
+      <div style="padding: 10px 10px 0">
+        <p style="margin-bottom: 14px; font-size: 13.5px; color: var(--text-regular)">
+          目标升级目标:
+          <strong>
+            {{ targetOtaDevice ? targetOtaDevice.name : `已选 ${selectedRows.length} 台设备` }}
+          </strong>
         </p>
 
         <el-form label-width="90px">
           <el-form-item label="目标固件">
-            <el-select v-model="otaVersion" style="width: 100%;">
+            <el-select v-model="otaVersion" style="width: 100%">
               <el-option label="v3.2.0-LTS (推荐稳定版 - 2026Q4)" value="v3.2.0-LTS" />
               <el-option label="v3.1.5-Hotfix (安全修复补丁)" value="v3.1.5-Hotfix" />
               <el-option label="v4.0.0-Beta (AI加速固件预览版)" value="v4.0.0-Beta" />
@@ -646,13 +760,23 @@
 
       <template #footer>
         <el-button @click="otaDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="otaLoading" @click="confirmOta">确认下发升级包</el-button>
+        <el-button type="primary" :loading="otaLoading" @click="confirmOta">
+          确认下发升级包
+        </el-button>
       </template>
     </el-dialog>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup>
+import PageContainer from '@/components/admin/PageContainer.vue'
+import FilterPanel from '@/components/admin/FilterPanel.vue'
+import TableToolbar from '@/components/admin/TableToolbar.vue'
+import TableEmpty from '@/components/admin/TableEmpty.vue'
+import StatisticCard from '@/components/admin/StatisticCard.vue'
+import { useBusinessTable } from '@/composables/useBusinessTable'
+import { useBusinessDraft } from '@/composables/useBusinessDraft'
+
 import { ref, reactive, computed, onMounted } from 'vue'
 import {
   Search,
@@ -677,19 +801,20 @@ import {
   Location,
   Cpu,
   Setting,
-  Operation
+  Operation,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import {
-  getStoredEquipments,
-  saveStoredEquipments,
-  addAuditLog
-} from '@/utils/mockData'
+import { getStoredEquipments, saveStoredEquipments, addAuditLog } from '@/utils/mockData'
 
 const userStore = useUserStore()
 
 // State
+const tableRef = ref()
+const clearSelection = () => {
+  tableRef.value?.clearSelection()
+  selectedRows.value = []
+}
 const tableLoading = ref(false)
 const allEquipments = ref([])
 const selectedRows = ref([])
@@ -702,24 +827,30 @@ const queryForm = reactive({
   keyword: '',
   category: '',
   status: '',
-  networkType: ''
+  networkType: '',
 })
 
 // Pagination
 const pagination = reactive({
   currentPage: 1,
-  pageSize: 10
+  pageSize: 10,
 })
 
 // Counters
 const totalEquipmentCount = computed(() => 1580 + allEquipments.value.length - 6)
-const runningCount = computed(() => allEquipments.value.filter(e => e.status === 'running').length + 1488)
-const warningCount = computed(() => allEquipments.value.filter(e => e.status === 'warning').length + 22)
-const offlineCount = computed(() => allEquipments.value.filter(e => e.status === 'offline').length + 64)
+const runningCount = computed(
+  () => allEquipments.value.filter((e) => e.status === 'running').length + 1488,
+)
+const warningCount = computed(
+  () => allEquipments.value.filter((e) => e.status === 'warning').length + 22,
+)
+const offlineCount = computed(
+  () => allEquipments.value.filter((e) => e.status === 'offline').length + 64,
+)
 
 // Filter
 const filteredEquipments = computed(() => {
-  return allEquipments.value.filter(e => {
+  return allEquipments.value.filter((e) => {
     if (queryForm.keyword) {
       const kw = queryForm.keyword.toLowerCase().trim()
       const matchName = e.name.toLowerCase().includes(kw)
@@ -748,7 +879,7 @@ const getCategoryIcon = (cat) => {
     gateway: 'Cpu',
     ai_camera: 'View',
     robot: 'Promotion',
-    pda: 'Iphone'
+    pda: 'Iphone',
   }
   return map[cat] || 'Monitor'
 }
@@ -760,7 +891,7 @@ const getCategoryIconClass = (cat) => {
     gateway: 'icon-gateway',
     ai_camera: 'icon-ai',
     robot: 'icon-robot',
-    pda: 'icon-pda'
+    pda: 'icon-pda',
   }
   return map[cat] || 'icon-terminal'
 }
@@ -770,7 +901,7 @@ const getStatusLabel = (st) => {
     running: '在线运行',
     standby: '就绪待机',
     warning: '指标预警',
-    offline: '网络脱机'
+    offline: '网络脱机',
   }
   return map[st] || st
 }
@@ -780,7 +911,7 @@ const getStatusTagType = (st) => {
     running: 'success',
     standby: 'info',
     warning: 'warning',
-    offline: 'danger'
+    offline: 'danger',
   }
   return map[st] || 'info'
 }
@@ -827,7 +958,7 @@ const handlePowerChange = (row, val) => {
     target: row.deviceCode,
     detail: `电源指令: ${val ? '开机' : '断电'}, 设备: ${row.name}`,
     status: 'success',
-    ip: '192.168.1.108'
+    ip: '192.168.1.108',
   })
 }
 
@@ -839,7 +970,7 @@ const rebooting = ref(false)
 const recentLogs = ref([
   { time: '16:05:12', action: '接收到遥测心跳报文 (Heartbeat ACK)' },
   { time: '15:42:30', action: '同步下发网络时间 NTP 校验' },
-  { time: '14:20:18', action: '采集并上报工作温度与内存负荷' }
+  { time: '14:20:18', action: '采集并上报工作温度与内存负荷' },
 ])
 
 const openTelemetryDrawer = (row) => {
@@ -854,7 +985,7 @@ const handleRebootDevice = () => {
     ElMessage.success(`重启指令下发成功！设备【${currentEquipment.value.name}】正在进行安全热复位`)
     recentLogs.value.unshift({
       time: new Date().toTimeString().slice(0, 8),
-      action: '下发远程软复位热重启指令 (SysReboot)'
+      action: '下发远程软复位热重启指令 (SysReboot)',
     })
   }, 1000)
 }
@@ -863,10 +994,12 @@ const handleQuickReboot = (item) => {
   ElMessageBox.confirm(`确定要远程重启设备【${item.name}】吗？`, '远程指令确认', {
     confirmButtonText: '立即重启',
     cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    ElMessage.success(`设备【${item.name}】重启指令已发送`)
-  }).catch(() => {})
+    type: 'warning',
+  })
+    .then(() => {
+      ElMessage.success(`设备【${item.name}】重启指令已发送`)
+    })
+    .catch(() => {})
 }
 
 const handleSelfDiagnose = () => {
@@ -894,14 +1027,14 @@ const deviceFormData = reactive({
   macAddress: '',
   firmwareVersion: 'v2.8.4',
   location: '',
-  description: ''
+  description: '',
 })
 
 const deviceFormRules = {
   name: [{ required: true, message: '请输入设备名称', trigger: 'blur' }],
   deviceCode: [{ required: true, message: '请输入设备资产编码', trigger: 'blur' }],
   model: [{ required: true, message: '请输入硬件型号', trigger: 'blur' }],
-  location: [{ required: true, message: '请输入部署物理位置', trigger: 'blur' }]
+  location: [{ required: true, message: '请输入部署物理位置', trigger: 'blur' }],
 }
 
 const openCreateModal = () => {
@@ -943,7 +1076,7 @@ const categoryNameMap = {
   gateway: '边缘智能网关',
   ai_camera: 'AI视觉终端',
   robot: '移动巡检终端',
-  pda: '手持手持终端'
+  pda: '手持手持终端',
 }
 
 const handleSaveDevice = () => {
@@ -952,7 +1085,7 @@ const handleSaveDevice = () => {
       submitLoading.value = true
       setTimeout(() => {
         if (isEditMode.value) {
-          const idx = allEquipments.value.findIndex(e => e.id === deviceFormData.id)
+          const idx = allEquipments.value.findIndex((e) => e.id === deviceFormData.id)
           if (idx > -1) {
             allEquipments.value[idx] = {
               ...allEquipments.value[idx],
@@ -966,7 +1099,7 @@ const handleSaveDevice = () => {
               macAddress: deviceFormData.macAddress,
               firmwareVersion: deviceFormData.firmwareVersion,
               location: deviceFormData.location,
-              description: deviceFormData.description
+              description: deviceFormData.description,
             }
           }
           ElMessage.success('设备参数已更新')
@@ -992,7 +1125,7 @@ const handleSaveDevice = () => {
             location: deviceFormData.location,
             lastHeartbeat: '刚刚',
             onlineDuration: '新纳管',
-            description: deviceFormData.description
+            description: deviceFormData.description,
           }
           allEquipments.value.unshift(newEq)
           ElMessage.success('新硬件设备登记成功')
@@ -1029,10 +1162,12 @@ const confirmOta = () => {
     otaDialogVisible.value = false
     if (targetOtaDevice.value) {
       targetOtaDevice.value.firmwareVersion = otaVersion.value
-      ElMessage.success(`固件升级任务已推送给【${targetOtaDevice.value.name}】，固件版本目标: ${otaVersion.value}`)
+      ElMessage.success(
+        `固件升级任务已推送给【${targetOtaDevice.value.name}】，固件版本目标: ${otaVersion.value}`,
+      )
     } else {
-      const ids = selectedRows.value.map(r => r.id)
-      allEquipments.value.forEach(e => {
+      const ids = selectedRows.value.map((r) => r.id)
+      allEquipments.value.forEach((e) => {
         if (ids.includes(e.id)) {
           e.firmwareVersion = otaVersion.value
         }
@@ -1045,7 +1180,7 @@ const confirmOta = () => {
 }
 
 const handleDeleteEquipmentRow = (row) => {
-  allEquipments.value = allEquipments.value.filter(e => e.id !== row.id)
+  allEquipments.value = allEquipments.value.filter((e) => e.id !== row.id)
   saveStoredEquipments(allEquipments.value)
   ElMessage.success(`设备【${row.name}】已成功注销`)
 }
@@ -1056,7 +1191,7 @@ const handleRebootFromEdit = () => {
 }
 
 const handleOtaFromEdit = () => {
-  const dev = allEquipments.value.find(e => e.id === deviceFormData.id)
+  const dev = allEquipments.value.find((e) => e.id === deviceFormData.id)
   if (dev) {
     deviceDialogVisible.value = false
     openOtaModal(dev)
@@ -1065,29 +1200,41 @@ const handleOtaFromEdit = () => {
 
 // Batch Command
 const openBatchCommandModal = () => {
-  ElMessageBox.confirm(`确定要向选中的 ${selectedRows.value.length} 台设备统一发送遥测自检与状态上报指令吗？`, '批量控制指令', {
-    confirmButtonText: '立即发送',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    ElMessage.success(`指令已通过集群通信网关广播至选中的 ${selectedRows.value.length} 台设备`)
-    selectedRows.value = []
-  }).catch(() => {})
+  ElMessageBox.confirm(
+    `确定要向选中的 ${selectedRows.value.length} 台设备统一发送遥测自检与状态上报指令吗？`,
+    '批量控制指令',
+    {
+      confirmButtonText: '立即发送',
+      cancelButtonText: '取消',
+      type: 'warning',
+    },
+  )
+    .then(() => {
+      ElMessage.success(`指令已通过集群通信网关广播至选中的 ${selectedRows.value.length} 台设备`)
+      selectedRows.value = []
+    })
+    .catch(() => {})
 }
 
 // Batch Delete
 const handleBatchDelete = () => {
-  ElMessageBox.confirm(`确定要从平台中彻底注销选中的 ${selectedRows.value.length} 台设备吗？`, '注销警示', {
-    confirmButtonText: '确认注销',
-    cancelButtonText: '取消',
-    type: 'error'
-  }).then(() => {
-    const ids = selectedRows.value.map(r => r.id)
-    allEquipments.value = allEquipments.value.filter(e => !ids.includes(e.id))
-    saveStoredEquipments(allEquipments.value)
-    ElMessage.success(`已注销 ${ids.length} 台设备台账`)
-    selectedRows.value = []
-  }).catch(() => {})
+  ElMessageBox.confirm(
+    `确定要从平台中彻底注销选中的 ${selectedRows.value.length} 台设备吗？`,
+    '注销警示',
+    {
+      confirmButtonText: '确认注销',
+      cancelButtonText: '取消',
+      type: 'error',
+    },
+  )
+    .then(() => {
+      const ids = selectedRows.value.map((r) => r.id)
+      allEquipments.value = allEquipments.value.filter((e) => !ids.includes(e.id))
+      saveStoredEquipments(allEquipments.value)
+      ElMessage.success(`已注销 ${ids.length} 台设备台账`)
+      selectedRows.value = []
+    })
+    .catch(() => {})
 }
 
 // Commands
@@ -1102,19 +1249,33 @@ const handleDeviceCommand = (cmd, row) => {
     ElMessageBox.confirm(`确定要从台账中注销设备【${row.name}】吗？`, '注销确认', {
       confirmButtonText: '确定注销',
       cancelButtonText: '取消',
-      type: 'error'
-    }).then(() => {
-      allEquipments.value = allEquipments.value.filter(e => e.id !== row.id)
-      saveStoredEquipments(allEquipments.value)
-      ElMessage.success('设备台账已注销')
-    }).catch(() => {})
+      type: 'error',
+    })
+      .then(() => {
+        allEquipments.value = allEquipments.value.filter((e) => e.id !== row.id)
+        saveStoredEquipments(allEquipments.value)
+        ElMessage.success('设备台账已注销')
+      })
+      .catch(() => {})
   }
 }
 
 // Export CSV
 const handleExportEquipments = () => {
-  const headers = ['设备编号', '设备名称', '设备编码', '设备分类', '硬件型号', '通信网络', 'IP地址', 'MAC地址', '固件版本', '状态', '部署位置']
-  const rows = filteredEquipments.value.map(e => [
+  const headers = [
+    '设备编号',
+    '设备名称',
+    '设备编码',
+    '设备分类',
+    '硬件型号',
+    '通信网络',
+    'IP地址',
+    'MAC地址',
+    '固件版本',
+    '状态',
+    '部署位置',
+  ]
+  const rows = filteredEquipments.value.map((e) => [
     e.id,
     e.name,
     e.deviceCode,
@@ -1125,10 +1286,12 @@ const handleExportEquipments = () => {
     e.macAddress,
     e.firmwareVersion,
     getStatusLabel(e.status),
-    e.location
+    e.location,
   ])
 
-  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  const csvContent =
+    'data:text/csv;charset=utf-8,\uFEFF' +
+    [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
   const encodedUri = encodeURI(csvContent)
   const link = document.createElement('a')
   link.setAttribute('href', encodedUri)
@@ -1142,16 +1305,36 @@ const handleExportEquipments = () => {
 onMounted(() => {
   loadEquipmentData()
 })
+
+const businessTable = useBusinessTable(
+  'equipment',
+  [
+    { prop: 'deviceInfo', label: '设备信息' },
+    { prop: 'deviceCode', label: '设备编码' },
+    { prop: 'category', label: '设备分类' },
+    { prop: 'connection', label: '网络与信号' },
+    { prop: 'telemetry', label: '遥测负荷' },
+    { prop: 'firmwareVersion', label: '固件版本' },
+    { prop: 'status', label: '运行状态' },
+    { prop: 'power', label: '远程电源' },
+    { prop: 'location', label: '部署物理位置' },
+  ],
+  {
+    query: queryForm,
+    pagination,
+    clearSelection,
+    viewMode,
+    showStats,
+    showMoreFilter,
+    loading: tableLoading,
+    total: () => filteredEquipments.value.length,
+    pageSizes: [10, 20, 50, 100],
+  },
+)
+const formDraft = useBusinessDraft(deviceDialogVisible, deviceFormData, submitLoading)
 </script>
 
 <style scoped>
-.page-container {
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .stats-collapse-wrap {
   width: 100%;
 }
@@ -1160,103 +1343,9 @@ onMounted(() => {
   margin-bottom: 0px;
 }
 
-.stat-card {
-  border-radius: var(--radius-lg, 10px);
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  transition: all 0.25s ease;
-}
-
-.stat-card :deep(.el-card__body) {
-  padding: 8px 12px !important;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.stat-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.stat-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-top-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.stat-trend {
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.stat-trend.positive {
-  color: #10b981;
-}
-
-.stat-trend.warning {
-  color: #f59e0b;
-}
-
-.stat-trend.normal {
-  color: var(--text-secondary);
-}
-
-.stat-value-box {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-}
-
-.stat-number {
-  font-size: 19px;
-  font-weight: 700;
-  color: var(--text-main);
-  line-height: 1.1;
-}
-
-.stat-unit {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.stat-icon-wrap {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md, 8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
 .icon-primary {
-  background-color: rgba(59, 130, 246, 0.12);
-  color: #3b82f6;
+  background-color: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent-foreground, var(--primary-color));
 }
 
 .icon-success {
@@ -1272,52 +1361,6 @@ onMounted(() => {
 .icon-danger {
   background-color: rgba(239, 68, 68, 0.12);
   color: #ef4444;
-}
-
-.search-form-card,
-.table-card {
-  border-radius: var(--radius-lg, 10px);
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-}
-
-.search-form-card :deep(.el-card__body) {
-  padding: 8px 12px !important;
-}
-
-.table-card :deep(.el-card__body) {
-  padding: 10px 14px !important;
-}
-
-.filter-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 0;
-}
-
-.filter-form .el-form-item {
-  margin-bottom: 0 !important;
-  margin-right: 0 !important;
-}
-
-.action-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.left-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.right-actions {
-  display: flex;
-  align-items: center;
 }
 
 .device-cell {
@@ -1342,12 +1385,30 @@ onMounted(() => {
   border-radius: 10px;
 }
 
-.icon-terminal { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
-.icon-sensor { background: rgba(16, 185, 129, 0.12); color: #10b981; }
-.icon-gateway { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
-.icon-ai { background: rgba(236, 72, 153, 0.12); color: #ec4899; }
-.icon-robot { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
-.icon-pda { background: rgba(14, 165, 233, 0.12); color: #0ea5e9; }
+.icon-terminal {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+.icon-sensor {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+.icon-gateway {
+  background: rgba(139, 92, 246, 0.12);
+  color: #8b5cf6;
+}
+.icon-ai {
+  background: rgba(236, 72, 153, 0.12);
+  color: #ec4899;
+}
+.icon-robot {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+.icon-pda {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0ea5e9;
+}
 
 .device-meta {
   display: flex;
@@ -1362,7 +1423,7 @@ onMounted(() => {
 
 .device-model {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .code-tag {
@@ -1407,10 +1468,18 @@ onMounted(() => {
   border-radius: 1px;
 }
 
-.signal-bar:nth-child(2) { height: 6px; }
-.signal-bar:nth-child(3) { height: 8px; }
-.signal-bar:nth-child(4) { height: 10px; }
-.signal-bar:nth-child(5) { height: 12px; }
+.signal-bar:nth-child(2) {
+  height: 6px;
+}
+.signal-bar:nth-child(3) {
+  height: 8px;
+}
+.signal-bar:nth-child(4) {
+  height: 10px;
+}
+.signal-bar:nth-child(5) {
+  height: 12px;
+}
 
 .signal-bar.active {
   background-color: #10b981;
@@ -1418,7 +1487,7 @@ onMounted(() => {
 
 .ip-text {
   font-size: 11.5px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-family: monospace;
 }
 
@@ -1436,7 +1505,7 @@ onMounted(() => {
 
 .load-label {
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .temp-line {
@@ -1448,13 +1517,13 @@ onMounted(() => {
 }
 
 .battery-sub {
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .firmware-tag {
   font-family: monospace;
   font-size: 11.5px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   background: var(--bg-color);
   padding: 2px 6px;
   border-radius: 4px;
@@ -1468,10 +1537,18 @@ onMounted(() => {
   margin-right: 4px;
 }
 
-.status-dot.running { background-color: #10b981; }
-.status-dot.standby { background-color: #94a3b8; }
-.status-dot.warning { background-color: #f59e0b; }
-.status-dot.offline { background-color: #ef4444; }
+.status-dot.running {
+  background-color: #10b981;
+}
+.status-dot.standby {
+  background-color: var(--text-muted);
+}
+.status-dot.warning {
+  background-color: #f59e0b;
+}
+.status-dot.offline {
+  background-color: #ef4444;
+}
 
 /* Grid View */
 .card-view-grid {
@@ -1513,7 +1590,7 @@ onMounted(() => {
 
 .card-device-code {
   font-size: 11.5px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-family: monospace;
 }
 
@@ -1539,7 +1616,7 @@ onMounted(() => {
 
 .metric-label {
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .metric-val {
@@ -1553,7 +1630,7 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .grid-card-footer {
@@ -1563,18 +1640,9 @@ onMounted(() => {
   margin-top: 12px;
 }
 
-.pagination-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-color);
-}
-
 .page-total-text {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 /* Drawer */
@@ -1610,9 +1678,10 @@ onMounted(() => {
   color: var(--text-main);
 }
 
-.sub-code, .sub-loc {
+.sub-code,
+.sub-loc {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .telemetry-cards {
@@ -1630,7 +1699,7 @@ onMounted(() => {
 
 .t-label {
   font-size: 11.5px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .t-value {
@@ -1640,7 +1709,7 @@ onMounted(() => {
 
 .t-sub {
   font-size: 10px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .control-actions-grid {
@@ -1662,7 +1731,7 @@ onMounted(() => {
 .log-title {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .log-entry {
@@ -1673,7 +1742,7 @@ onMounted(() => {
 }
 
 .log-time {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-family: monospace;
 }
 
