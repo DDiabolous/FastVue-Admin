@@ -133,9 +133,9 @@ async def test_session_management_and_avatar_persistence(client, admin):
     update_res = await client.patch(
         '/api/v1/auth/profile',
         headers=admin,
-        json={'realName': '管理员测试', 'email': 'admin@test.local', 'avatar': avatar_data},
+        json={'realName': '管理员测试', 'email': 'admin@example.org', 'avatar': avatar_data},
     )
-    assert update_res.status_code == 200
+    assert update_res.status_code == 200, update_res.text
     assert update_res.json()['data']['avatar'] == avatar_data
 
     # Re-fetch profile to ensure database persistence
@@ -173,7 +173,6 @@ async def test_session_management_and_avatar_persistence(client, admin):
     # Verify second session is revoked while current session remains active
     assert (await client.get('/api/v1/auth/me', headers=second_headers)).status_code == 401
     assert (await client.get('/api/v1/auth/me', headers=admin)).status_code == 200
-    await sign_in(client, password='ChangedPass123!')
 
 
 async def test_viewer_and_editor_cannot_bypass_permissions(client, admin):

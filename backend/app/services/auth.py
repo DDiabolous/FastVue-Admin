@@ -20,12 +20,12 @@ def parse_device_info(ua: str) -> str:
     if not ua:
         return 'Web 客户端'
     os_name = 'Unknown OS'
-    if 'Macintosh' in ua or 'Mac OS X' in ua:
+    if 'iPhone' in ua or 'iPad' in ua or 'iPod' in ua:
+        os_name = 'iOS'
+    elif 'Macintosh' in ua or 'Mac OS X' in ua:
         os_name = 'macOS'
     elif 'Windows' in ua:
         os_name = 'Windows'
-    elif 'iPhone' in ua:
-        os_name = 'iOS'
     elif 'Android' in ua:
         os_name = 'Android'
     elif 'Linux' in ua:
