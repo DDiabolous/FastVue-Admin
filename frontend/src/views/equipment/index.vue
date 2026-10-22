@@ -4,13 +4,8 @@
     title="设备管理示例"
     description="管理设备接入、状态与遥测信息，支持列表和卡片视图。本页使用本地演示数据。"
   >
-    <template #actions>
-      <el-button :icon="showStats ? ArrowUp : DataAnalysis" @click="showStats = !showStats">
-        {{ showStats ? '收起统计' : '展开统计' }}
-      </el-button>
-    </template>
-    <!-- Top KPI Stats Row (Collapsible, uncoupled from heading & gaps) -->
-    <div class="stats-collapse-box" :class="{ 'is-collapsed': !showStats }">
+    <!-- Top KPI Stats Row -->
+    <div class="stats-collapse-box">
       <div class="stats-collapse-inner">
         <el-row :gutter="16" class="stats-row">
           <el-col :xs="12" :sm="12" :lg="6">
@@ -449,20 +444,35 @@
             </div>
           </div>
 
-          <div class="grid-card-footer">
-            <el-button
-              size="small"
-              type="primary"
-              plain
-              :icon="Odometer"
-              @click="openTelemetryDrawer(item)"
-            >
-              远程调测
-            </el-button>
-            <el-button size="small" :icon="Edit" @click="openEditModal(item)">编辑</el-button>
-            <el-button size="small" :icon="Refresh" @click="handleQuickReboot(item)">
-              重启
-            </el-button>
+          <div class="grid-card-footer has-toggle">
+            <div class="footer-left">
+              <el-tooltip
+                :content="item.powerStatus ? '设备运行中（点击停用）' : '设备已脱机（点击启用）'"
+                placement="top"
+              >
+                <el-switch
+                  v-model="item.powerStatus"
+                  active-color="#10b981"
+                  inactive-color="#94a3b8"
+                  @change="(val) => handlePowerChange(item, val)"
+                />
+              </el-tooltip>
+            </div>
+            <div class="footer-actions">
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                :icon="Odometer"
+                @click="openTelemetryDrawer(item)"
+              >
+                调测
+              </el-button>
+              <el-button size="small" :icon="Edit" @click="openEditModal(item)">编辑</el-button>
+              <el-button size="small" :icon="Refresh" @click="handleQuickReboot(item)">
+                重启
+              </el-button>
+            </div>
           </div>
         </el-card>
       </div>
@@ -799,7 +809,6 @@ import {
   Edit,
   ArrowDown,
   ArrowUp,
-  DataAnalysis,
   Monitor,
   Connection,
   Warning,
@@ -1442,8 +1451,14 @@ const formDraft = useBusinessDraft(deviceDialogVisible, deviceFormData, submitLo
   font-size: 12px;
 }
 
-.category-tag {
-  border-radius: 4px;
+.category-tag,
+:global(html.dark) .category-tag {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  border: none !important;
+  color: var(--primary-color) !important;
+  font-weight: 500;
+  padding: 0 4px;
 }
 
 .network-cell {
@@ -1644,9 +1659,36 @@ const formDraft = useBusinessDraft(deviceDialogVisible, deviceFormData, submitLo
 
 .grid-card-footer {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-evenly;
   gap: 8px;
   margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.grid-card-footer.has-toggle {
+  justify-content: space-between;
+}
+
+.grid-card-footer .footer-left {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.grid-card-footer .footer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+}
+
+.grid-card-footer .footer-actions .el-button {
+  flex-shrink: 0;
 }
 
 .page-total-text {

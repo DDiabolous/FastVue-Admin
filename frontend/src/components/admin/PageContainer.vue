@@ -1,7 +1,8 @@
 <template>
   <div class="page-container starter-page">
-    <div class="starter-page-heading">
-      <div>
+    <div v-if="app.showPageTitle || $slots.actions" class="starter-page-heading"
+      :class="{ 'is-title-hidden': !app.showPageTitle }">
+      <div v-if="app.showPageTitle">
         <div class="page-title-line">
           <h1>{{ title }}</h1>
           <el-tooltip
@@ -25,7 +26,7 @@
         </div>
         <p v-if="description">{{ description }}</p>
       </div>
-      <div class="starter-heading-actions"><slot name="actions" /></div>
+      <div v-if="$slots.actions" class="starter-heading-actions"><slot name="actions" /></div>
     </div>
     <slot />
   </div>
@@ -37,3 +38,6 @@ const route = useRoute(),
   app = useAppStore()
 defineProps({ title: String, description: String })
 </script>
+<style scoped>
+.starter-page-heading.is-title-hidden { justify-content: flex-end; }
+</style>

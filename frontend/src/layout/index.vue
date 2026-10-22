@@ -14,8 +14,8 @@
 
       <main class="content-container">
         <router-view v-slot="{ Component, route }">
-          <transition name="page-fade" mode="out-in">
-            <component :is="Component" :key="route.path" />
+          <transition name="page-slide" mode="out-in">
+            <component :is="Component" :key="route.fullPath + '-' + appStore.viewKey" />
           </transition>
         </router-view>
       </main>
@@ -55,23 +55,36 @@ const appStore = useAppStore()
   flex: 1;
   min-height: 0;
   overflow-x: hidden;
-  overflow-y: auto;
+  /* Keep the gutter even for short pages and browsers without scrollbar-gutter support. */
+  overflow-y: scroll;
   scrollbar-gutter: stable;
   position: relative;
   background-color: var(--bg-color);
 }
 
-/* Page Transition */
-.page-fade-leave-active,
-.page-fade-enter-active {
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+.content-container::-webkit-scrollbar {
+  width: 8px;
 }
 
-.page-fade-enter-from {
+/* Page Transition - Subtle Natural Fade Slide Y */
+.page-slide-enter-active {
+  transition:
+    opacity var(--motion-duration-base, 220ms) var(--ease-out-natural, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--motion-duration-base, 220ms) var(--ease-out-natural, cubic-bezier(0.16, 1, 0.3, 1));
+  will-change: opacity, transform;
+}
+
+.page-slide-leave-active {
+  transition: opacity 100ms var(--ease-in-swift, cubic-bezier(0.4, 0, 1, 1));
+  will-change: opacity;
+}
+
+.page-slide-enter-from {
   opacity: 0;
+  transform: translateY(6px);
 }
 
-.page-fade-leave-to {
+.page-slide-leave-to {
   opacity: 0;
 }
 </style>

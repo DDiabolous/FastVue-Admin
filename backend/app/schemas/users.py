@@ -32,6 +32,12 @@ class UserRead(RecordOutput):
     username: str
     realName: str
     email: str
+    gender: Literal['unspecified', 'male', 'female', 'other'] = 'unspecified'
+    phone: str = ''
+    location: str = ''
+    bio: str = ''
+    avatar: str | None = None
+    coverImage: str | None = None
     role: str
     roleName: str
     status: Literal[0, 1]

@@ -42,14 +42,14 @@ services:
   api:
     build: ./backend
     # Only the trusted Compose network can reach this port; nginx replaces XFF.
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--proxy-headers", "--forwarded-allow-ips", "*"]
     environment: *api_environment
     networks: [backend]
     depends_on:
       migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/health')"]
       interval: 10s
       timeout: 3s
       retries: 10

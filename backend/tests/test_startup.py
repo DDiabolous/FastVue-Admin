@@ -70,3 +70,21 @@ async def test_startup_timeout_is_bounded_and_disposes_engine(app, monkeypatch):
         async with app.router.lifespan_context(app):
             pytest.fail('A timed-out database check must abort startup')
     dispose.assert_awaited_once()
+
+
+async def test_request_id_middleware_attaches_and_echoes_header():
+    from httpx import ASGITransport, AsyncClient
+
+    test_app = create_app(
+        Settings(database_url='postgresql+asyncpg://mock:mock@127.0.0.1:5432/mock')
+    )
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url='http://test') as client:
+        # Without incoming X-Request-ID: should generate a new one
+        res1 = await client.get('/nonexistent')
+        assert 'x-request-id' in res1.headers
+        assert len(res1.headers['x-request-id']) > 0
+
+        # With incoming X-Request-ID: should preserve the passed one
+        custom_id = 'test-trace-id-12345'
+        res2 = await client.get('/nonexistent', headers={'X-Request-ID': custom_id})
+        assert res2.headers.get('x-request-id') == custom_id

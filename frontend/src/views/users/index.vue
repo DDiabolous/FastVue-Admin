@@ -122,7 +122,7 @@
 
         <el-table-column label="账号权限" width="140">
           <template #default="{ row }">
-            <el-tag :type="getRoleTagType(row.role)" effect="light" size="small">
+            <el-tag :type="getRoleTagType(row.role)" effect="light" size="small" :disable-transitions="true">
               {{ row.roleName }}
             </el-tag>
           </template>

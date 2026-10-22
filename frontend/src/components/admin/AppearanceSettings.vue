@@ -13,17 +13,22 @@
       <h3>主题色</h3>
       <p>应用于按钮、导航与选中状态。</p>
       <div class="accent-options">
-        <button
+        <el-tooltip
           v-for="accent in accents"
           :key="accent.value"
-          type="button"
-          :aria-label="accent.label"
-          :aria-pressed="app.accent === accent.value"
-          :style="{ backgroundColor: accent.value }"
-          @click="app.updateAppearance({ accent: accent.value })"
+          :content="accent.label"
+          placement="top"
         >
-          <el-icon v-if="app.accent === accent.value"><Check /></el-icon>
-        </button>
+          <button
+            type="button"
+            :aria-label="accent.label"
+            :aria-pressed="app.accent === accent.value"
+            :style="{ backgroundColor: accent.value }"
+            @click="app.updateAppearance({ accent: accent.value })"
+          >
+            <el-icon v-if="app.accent === accent.value"><Check /></el-icon>
+          </button>
+        </el-tooltip>
       </div>
     </section>
     <section class="preference-section">
@@ -37,13 +42,24 @@
         <el-radio-button value="compact">紧凑</el-radio-button>
       </el-radio-group>
     </section>
+    <section class="preference-section page-title-setting">
+      <div>
+        <h3>显示页面标题</h3>
+        <p>显示各页顶部的标题和说明。</p>
+      </div>
+      <el-switch
+        :model-value="app.showPageTitle"
+        aria-label="显示页面标题"
+        @update:model-value="(value) => app.updateAppearance({ showPageTitle: value })"
+      />
+    </section>
     <div class="preference-note">
       <el-icon><InfoFilled /></el-icon>
       <span>偏好自动保存在当前浏览器，刷新后仍然生效。</span>
     </div>
     <template #footer>
       <el-button
-        @click="app.updateAppearance({ theme: 'light', accent: '#2563eb', density: 'comfortable' })"
+        @click="app.updateAppearance({ theme: 'light', accent: '#2563eb', density: 'comfortable', showPageTitle: true })"
       >
         恢复默认外观
       </el-button>
@@ -56,3 +72,7 @@ import { useAppStore } from '@/stores/app'
 import { accents } from '@/utils/preferences'
 const app = useAppStore()
 </script>
+<style scoped>
+.page-title-setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.page-title-setting .el-switch { flex-shrink: 0; }
+</style>

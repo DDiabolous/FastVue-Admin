@@ -9,8 +9,17 @@ const publicUser = (db, user) => {
   const { password, ...info } = user
   return { ...info, roleName: role?.roleName || '未分配角色', permissions: role?.permissions || [] }
 }
-export async function mockRequest(path, { method = 'GET', body, token } = {}) {
-  const db = readDatabase()
+let pendingRequest = Promise.resolve()
+
+export function mockRequest(path, options = {}) {
+  // Keep each read/modify/write sequence together while storage is asynchronous.
+  const result = pendingRequest.then(() => handleMockRequest(path, options))
+  pendingRequest = result.then(() => undefined, () => undefined)
+  return result
+}
+
+async function handleMockRequest(path, { method = 'GET', body, token } = {}) {
+  const db = await readDatabase()
   const url = new URL(path, 'http://demo.local')
   const parts = url.pathname.split('/').filter(Boolean)
   if (path === '/auth/login' && method === 'POST') {
@@ -19,9 +28,15 @@ export async function mockRequest(path, { method = 'GET', body, token } = {}) {
     )
     if (!user) fail(401, '账号或密码错误，或账号已停用')
     const sessionToken = crypto.randomUUID()
-    db.sessions[sessionToken] = { userId: user.id, expiresAt: Date.now() + 8 * 3600_000 }
+    db.sessions[sessionToken] = {
+      userId: user.id,
+      expiresAt: Date.now() + 8 * 3600_000,
+      createdAt: Date.now(),
+      ip: '127.0.0.1',
+      device: 'Desktop / Chrome (Web)',
+    }
     appendLog(db, user.username, '登录成功', '登录', 'login')
-    writeDatabase(db)
+    await writeDatabase(db)
     return { token: sessionToken, user: publicUser(db, user) }
   }
   const session = db.sessions[token]
@@ -40,17 +55,42 @@ export async function mockRequest(path, { method = 'GET', body, token } = {}) {
     return db.roles.filter(canAssign).map(({ roleKey, roleName }) => ({ roleKey, roleName }))
   }
   if (path === '/auth/me') return publicUser(db, user)
+  if (path === '/auth/sessions' && method === 'GET') {
+    return Object.entries(db.sessions)
+      .filter(([_, s]) => s.userId === user.id && s.expiresAt > Date.now())
+      .map(([k, s]) => ({
+        tokenHash: k,
+        device: s.device || 'Chrome / Web Browser',
+        ip: s.ip || '127.0.0.1',
+        createdAt: s.createdAt ? new Date(s.createdAt).toLocaleString() : '最近登录',
+        expiresAt: new Date(s.expiresAt).toLocaleString(),
+        isCurrent: k === token,
+      }))
+  }
+  if (path.startsWith('/auth/sessions/') && method === 'DELETE') {
+    const targetHash = decodeURIComponent(parts[2] || '')
+    if (db.sessions[targetHash]?.userId === user.id) {
+      delete db.sessions[targetHash]
+      await writeDatabase(db)
+    }
+    return null
+  }
   if (path === '/auth/logout' && method === 'POST') {
     delete db.sessions[token]
     appendLog(db, user.username, '退出登录', '登录', 'login')
-    writeDatabase(db)
+    await writeDatabase(db)
     return null
   }
   if (path === '/auth/profile' && method === 'PATCH') {
-    user.realName = String(body.realName || user.username)
-    user.email = String(body.email || '')
+    if (body.realName !== undefined) user.realName = String(body.realName || user.username)
+    if (body.email !== undefined) user.email = String(body.email || '')
+    for (const field of ['gender', 'phone', 'location', 'bio']) {
+      if (body[field] !== undefined) user[field] = String(body[field])
+    }
+    if (body.avatar !== undefined) user.avatar = String(body.avatar)
+    if (body.coverImage !== undefined) user.coverImage = String(body.coverImage || '')
     appendLog(db, user.username, '更新个人资料', user.username)
-    writeDatabase(db)
+    await writeDatabase(db)
     return publicUser(db, user)
   }
   if (path === '/auth/password' && method === 'POST') {
@@ -60,7 +100,7 @@ export async function mockRequest(path, { method = 'GET', body, token } = {}) {
     for (const [key, value] of Object.entries(db.sessions))
       if (value.userId === user.id) delete db.sessions[key]
     appendLog(db, user.username, '修改密码', user.username)
-    writeDatabase(db)
+    await writeDatabase(db)
     return null
   }
   const [resource, id] = parts
@@ -79,7 +119,7 @@ export async function mockRequest(path, { method = 'GET', body, token } = {}) {
       registration: String(body.registration || ''),
     }
     appendLog(db, user.username, '更新系统配置', '系统配置')
-    writeDatabase(db)
+    await writeDatabase(db)
     return db.settings
   }
   if (method === 'GET') {
@@ -185,6 +225,6 @@ export async function mockRequest(path, { method = 'GET', body, token } = {}) {
     `${{ POST: '新增', PATCH: '编辑', DELETE: '删除' }[method]}${resource}`,
     id || body.username || body.roleKey || body.label,
   )
-  writeDatabase(db)
+  await writeDatabase(db)
   return null
 }

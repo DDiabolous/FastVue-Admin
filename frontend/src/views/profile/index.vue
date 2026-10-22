@@ -17,11 +17,11 @@
               <h3 class="user-display-name">{{ userStore.currentRealName }}</h3>
               <p class="user-account-tag">@{{ userStore.currentUsername }}</p>
               <div class="badges-row">
-                <el-tag type="primary" effect="light" class="role-badge">
+                <el-tag type="primary" effect="light" class="role-badge" :disable-transitions="true">
                   <el-icon><Stamp /></el-icon>
                   <span>{{ userStore.currentRoleName }}</span>
                 </el-tag>
-                <el-tag type="info" effect="light" class="dept-badge">
+                <el-tag type="info" effect="light" class="dept-badge" :disable-transitions="true">
                   <el-icon><OfficeBuilding /></el-icon>
                   <span>{{ userStore.userInfo?.department || '技术研发与数字化中心' }}</span>
                 </el-tag>

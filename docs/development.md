@@ -45,7 +45,7 @@
 
 ## 接入后端
 
-先按 [后端说明](../backend/README.md) 启动 PostgreSQL、执行迁移并初始化管理员。设置 `VITE_USE_MOCK=false` 和 `VITE_API_BASE_URL=/api/v1`，重启开发服务。Vite 已配置 `/api` 转发到 `http://127.0.0.1:8000`。默认 API 使用原生 fetch；接口方法位于 `src/api/system.js`，请求处理位于 `src/api/request.js`。
+先按 [后端说明](../backend/README.md) 启动 PostgreSQL、执行迁移并初始化管理员。设置 `VITE_USE_MOCK=false` 和 `VITE_API_BASE_URL=/api/v1`，重启开发服务。Vite 已配置 `/api` 转发到 `http://127.0.0.1:8001`。默认 API 使用原生 fetch；接口方法位于 `src/api/system.js`，请求处理位于 `src/api/request.js`。
 
 真实请求按 `{ code: 200, message, data }` 解包。HTTP 或业务 401 会清理会话并返回登录；403 保留登录并展示操作错误。受保护路由初始化会通过 `/auth/me` 获取资料和权限。网络失败保留登录状态，显示错误，用户可重试。
 
@@ -57,7 +57,7 @@
 
 ## 演示数据和权限
 
-默认演示数据库位于 `${VITE_STORAGE_PREFIX}:demo-v1`。清除该项可以重新生成初始用户和字典；同时清除 `${VITE_STORAGE_PREFIX}:token` 可退出旧会话。
+默认演示数据库保存在 IndexedDB 的 `${VITE_STORAGE_PREFIX}:demo-v2` 中，旧版 localStorage 数据会自动迁移。需要重置演示数据时，可在浏览器开发者工具中删除该 IndexedDB 数据库，并清除 localStorage 的 `${VITE_STORAGE_PREFIX}:token` 后刷新。
 
 内置 admin 用户与角色受保护，个人资料和密码在个人中心修改。编辑用户可维护用户和字典，不能分配超出自身权限的角色。只读用户无法新增、编辑和删除。权限与角色状态修改后会影响 Mock API 的后续请求；核心后端在每次请求执行对应校验，使用数据库会话与服务端审计。
 
@@ -72,7 +72,7 @@ npm run build
 npm run build:full
 ```
 
-人工检查管理员与只读账号的菜单差异、刷新恢复会话、CRUD、修改密码及关闭模块后的 404。文件示例仅演示选择和本地图片预览，真实上传需新增接口、授权、大小限制及服务端类型校验。
+人工检查管理员与只读账号的菜单差异、刷新恢复会话、CRUD、修改密码及关闭模块后的 404。文件示例演示选择、裁剪、本地图片预览及模拟上传进度，真实上传需新增接口、授权、大小限制及服务端类型校验。
 
 ## 界面偏好与高频操作
 
@@ -113,3 +113,23 @@ full 业务示例继续使用原有浏览器 Mock 数据，未接入核心后端
 Service 负责业务校验与事务提交，Repository 负责查询及持久化，不在 HTTP 路由中写 SQL。业务错误使用 `AppError`，成功写操作与审计日志在同一事务中提交。新增 API 版本时在 `app/api/router.py` 并行挂载版本路由，保留已发布版本的输入输出契约；API 版本与数据库迁移版本独立管理。
 
 当前业务 Base URL 为 `/api/v1`，健康检查仍为 `/api/health`。已有 `.env.local` 若覆盖为 `/api`，需要同步修改并重启 Vite。Mock 调用继续使用 `/auth/login` 等相对资源路径，其行为不受 HTTP 版本前缀影响。
+
+## 开发示例复用
+
+开发示例使用“项目管理”串联页面，可在默认模式与 full 模式下使用。页面右上角的“页面用法”提供适用范围、源码位置和复用内容；隐藏页面大标题后，该入口仍然保留。
+
+| 页面 | 复用内容 |
+| --- | --- |
+| 基础列表 `/examples/list` | 多条件查询、排序、分页、多选删除、列设置、状态预览；页内切换列表与卡片，共享筛选、字段显隐、数据及详情抽屉 |
+| 表单与详情 `/examples/form` | 分步填写、分类与负责人联动、唯一编号校验、计划周期、未保存提醒 |
+| 复杂详情 `/examples/details` | 描述列表、项目进度、交付阶段、时间线和编辑入口 |
+| 树形列表 `/examples/tree` | 目录过滤、表格定位、父级调整、拖拽排序、增删改 |
+| 文件上传 `/examples/upload` | 图片裁剪、附件校验、本地模拟上传、取消、失败重试 |
+| 导入导出 `/examples/import-export` | CSV 校验、异常行导出、重复邮箱跳过或更新、按筛选或选中项导出 |
+| 交互反馈 `/examples/feedback` | 删除确认、空状态、错误重试、权限反馈和成功结果 |
+
+项目示例由 `src/stores/exampleProjects.js` 共享内存数据，刷新后恢复初始项目；目录和人员导入数据仅保留在当前页面。所有示例都不写入真实业务后端。上传进度和失败是可主动触发的本地演示，生产环境需要替换为真实上传请求及取消机制。详情中的交付阶段根据项目进度推导，用于演示关联表格。
+
+列表与卡片已合并为“基础列表”一个菜单，页内切换视图保留筛选条件；旧地址 `/examples/cards` 自动跳转到 `/examples/list`。开发示例和可选模块、业务示例共用 `business-page`、`business-data-card`、`business-overlay` 样式，通用实体卡片复用 `entity-card-grid` 与 `entity-card`，示例专属细节集中在 `styles/examples.css`。
+
+复用时保留 `PageContainer`、`FilterPanel`、`TableToolbar`、`TableEmpty`、`useTablePreferences`、`useUnsavedChanges` 等组件和交互，将示例 Store 替换为业务接口，并对编号唯一性、授权和文件类型等规则增加服务端验证。

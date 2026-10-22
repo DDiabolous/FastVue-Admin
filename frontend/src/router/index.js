@@ -18,6 +18,7 @@ export const routes = [
     component: Layout,
     redirect: '/dashboard',
     children: [
+      { path: 'examples/cards', redirect: '/examples/list' },
       ...modules.map(({ path, name, component, props, ...meta }) => ({
         path: path.slice(1),
         name,

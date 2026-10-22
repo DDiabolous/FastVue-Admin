@@ -1,6 +1,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
+import { registerViewGuard } from '../utils/viewGuards'
 
 export function useUnsavedChanges(dirty) {
   async function confirmDiscard() {
@@ -24,7 +25,11 @@ export function useUnsavedChanges(dirty) {
     }
   }
   onBeforeRouteLeave((to) => (to.path === '/login' ? true : confirmDiscard()))
+  const unregister = registerViewGuard(confirmDiscard)
   onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-  onUnmounted(() => window.removeEventListener('beforeunload', beforeUnload))
+  onUnmounted(() => {
+    unregister()
+    window.removeEventListener('beforeunload', beforeUnload)
+  })
   return { confirmDiscard }
 }

@@ -10,20 +10,12 @@
       </span>
       <el-button @click="helpVisible = true">项目帮助</el-button>
     </template>
-    <div class="starter-welcome">
-      <div>
-        <span class="starter-eyebrow">{{ appConfig.name }}</span>
-        <h2>为你的下一个后台项目做好准备</h2>
-        <p>统一布局、系统管理与可复用页面示例，按需组合你的业务。</p>
-        <el-button type="primary" @click="$router.push('/examples/list')">
-          查看列表示例
-          <el-icon><ArrowRight /></el-icon>
-        </el-button>
-      </div>
-      <div class="starter-welcome-mark">
-        <el-icon :size="76"><Grid /></el-icon>
-      </div>
-    </div>
+    <!-- 1. Top KPI Metrics with Sparklines -->
+    <DashboardKpis />
+
+    <!-- 2. Dual Interactive Charts (Trend Area & Category Ring) -->
+    <DashboardCharts />
+
     <div class="workspace-grid">
       <section class="workspace-main">
         <el-card shadow="never" class="workspace-card">
@@ -51,14 +43,16 @@
                 <strong>{{ item.title }}</strong>
                 <small>{{ item.group || '常用页面' }}</small>
               </router-link>
-              <button
-                type="button"
-                class="unfavorite"
-                :aria-label="`取消收藏${item.title}`"
-                @click="app.toggleFavorite(item.path)"
-              >
-                <el-icon><StarFilled /></el-icon>
-              </button>
+              <el-tooltip content="取消收藏" placement="top">
+                <button
+                  type="button"
+                  class="unfavorite"
+                  :aria-label="`取消收藏${item.title}`"
+                  @click="app.toggleFavorite(item.path)"
+                >
+                  <el-icon><StarFilled /></el-icon>
+                </button>
+              </el-tooltip>
             </div>
           </div>
           <div v-else class="favorites-empty">
@@ -166,6 +160,8 @@ import { useAppStore } from '@/stores/app'
 import { appConfig } from '@/config/app'
 import { modules } from '@/config/modules'
 import PageContainer from '@/components/admin/PageContainer.vue'
+import DashboardKpis from './components/DashboardKpis.vue'
+import DashboardCharts from './components/DashboardCharts.vue'
 const user = useUserStore(),
   tags = useTagsViewStore(),
   app = useAppStore()
@@ -228,3 +224,23 @@ const steps = [
   },
 ]
 </script>
+
+<style scoped>
+.starter-welcome-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+}
+.custom-hint-tip {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.custom-hint-tip code {
+  background: var(--el-fill-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+</style>

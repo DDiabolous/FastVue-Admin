@@ -20,12 +20,18 @@
           @click="$emit('refresh')"
         />
       </el-tooltip>
-      <el-popover placement="bottom-end" :width="160" trigger="click">
-        <template #reference>
-          <el-button circle aria-label="表格密度">
-            <el-icon><Operation /></el-icon>
-          </el-button>
-        </template>
+      <el-tooltip content="表格密度" placement="top">
+        <el-button ref="densityTriggerRef" circle aria-label="表格密度">
+          <el-icon><Operation /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-popover
+        :virtual-ref="densityTriggerRef"
+        virtual-triggering
+        placement="bottom-end"
+        :width="160"
+        trigger="click"
+      >
         <div class="popover-heading">表格密度</div>
         <el-radio-group
           class="density-radio-group"
@@ -36,12 +42,19 @@
           <el-radio-button value="compact">紧凑</el-radio-button>
         </el-radio-group>
       </el-popover>
-      <el-popover v-if="columns.length" placement="bottom-end" width="230" trigger="click">
-        <template #reference>
-          <el-button circle aria-label="列设置">
-            <el-icon><SetUp /></el-icon>
-          </el-button>
-        </template>
+      <el-tooltip v-if="columns.length" content="列设置" placement="top">
+        <el-button ref="columnTriggerRef" circle aria-label="列设置">
+          <el-icon><SetUp /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-popover
+        v-if="columns.length"
+        :virtual-ref="columnTriggerRef"
+        virtual-triggering
+        placement="bottom-end"
+        width="230"
+        trigger="click"
+      >
         <div class="popover-heading">
           显示列
           <el-button link type="primary" @click="$emit('reset-columns')">重置</el-button>
@@ -64,9 +77,12 @@
   </div>
 </template>
 <script setup>
+import { ref } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
 const app = useAppStore()
+const densityTriggerRef = ref(null)
+const columnTriggerRef = ref(null)
 const props = defineProps({
   selected: { type: Number, default: 0 },
   loading: Boolean,

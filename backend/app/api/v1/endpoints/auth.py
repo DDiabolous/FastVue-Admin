@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request
 
 from app.api.dependencies import audit_context, client_ip, current_user, get_db
 from app.core.responses import ok
-from app.schemas.auth import Login, LoginResult, PasswordChange, Profile
+from app.schemas.auth import Login, LoginResult, PasswordChange, Profile, SessionInfo
 from app.schemas.common import Envelope
 from app.schemas.roles import RoleOption
 from app.schemas.users import UserRead
@@ -16,7 +16,12 @@ service = AuthService()
 async def login(body: Login, request: Request, db=Depends(get_db)):
     return ok(
         await service.login(
-            db, request.app.state.config, client_ip(request), body.username, body.password
+            db,
+            request.app.state.config,
+            client_ip(request),
+            body.username,
+            body.password,
+            user_agent=request.headers.get('user-agent', ''),
         )
     )
 
@@ -42,7 +47,9 @@ async def profile(
     body: Profile, request: Request, principal=Depends(current_user), db=Depends(get_db)
 ):
     return ok(
-        await service.profile(db, principal, audit_context(request, principal), body.model_dump())
+        await service.profile(
+            db, principal, audit_context(request, principal), body.model_dump(exclude_unset=True)
+        )
     )
 
 
@@ -53,4 +60,17 @@ async def password(
     await service.change_password(
         db, principal, audit_context(request, principal), body.oldPassword, body.newPassword
     )
+    return ok()
+
+
+@router.get('/sessions', response_model=Envelope[list[SessionInfo]])
+async def sessions(principal=Depends(current_user), db=Depends(get_db)):
+    return ok(await service.list_sessions(db, principal))
+
+
+@router.delete('/sessions/{token_hash}', response_model=Envelope[None])
+async def revoke_session(
+    token_hash: str, request: Request, principal=Depends(current_user), db=Depends(get_db)
+):
+    await service.revoke_session(db, principal, audit_context(request, principal), token_hash)
     return ok()

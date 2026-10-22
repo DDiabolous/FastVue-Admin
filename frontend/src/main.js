@@ -11,7 +11,9 @@ import { authDirective } from './directives/auth'
 import router from './router'
 import './style.css'
 import './styles/admin.css'
+import './styles/transitions.css'
 import './styles/business.css'
+import './styles/examples.css'
 import { useAppStore } from './stores/app'
 
 const app = createApp(App)
@@ -22,9 +24,10 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-// 默认所有带文字说明的气泡提示在鼠标停留2秒后才显示，避免鼠标滑过时频繁闪烁干扰
+// 文字提示在鼠标停留 1 秒后显示，避免划过时频繁闪烁。
 if (ElTooltip?.props?.showAfter) {
-  ElTooltip.props.showAfter.default = 1000
+  // Popover/Popconfirm share this prop definition. Replace it for Tooltip only.
+  ElTooltip.props.showAfter = { ...ElTooltip.props.showAfter, default: 1000 }
 }
 
 app.use(pinia)

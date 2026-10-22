@@ -1,0 +1,250 @@
+/**
+ * FastVue-Admin Natural & Minimalist Motion System
+ * Unified tokens, transitions, and micro-interaction utilities.
+ */
+
+:root {
+  /* Motion Duration Tokens */
+  --motion-duration-instant: 80ms;
+  --motion-duration-fast: 150ms;
+  --motion-duration-base: 220ms;
+  --motion-duration-slow: 280ms;
+
+  /* Motion Easing Curves (Physics-based damping) */
+  --ease-out-natural: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in-swift: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* ==========================================================================
+   Page & Router Transitions (Fade-Slide-Y)
+   ========================================================================== */
+.page-slide-enter-active {
+  transition:
+    opacity var(--motion-duration-base) var(--ease-out-natural),
+    transform var(--motion-duration-base) var(--ease-out-natural);
+  will-change: opacity, transform;
+}
+
+.page-slide-leave-active {
+  transition: opacity 100ms var(--ease-in-swift);
+  will-change: opacity;
+}
+
+.page-slide-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.page-slide-leave-to {
+  opacity: 0;
+}
+
+/* Backwards-compatible / standard fade */
+.page-fade-leave-active,
+.page-fade-enter-active {
+  transition: opacity var(--motion-duration-fast) var(--ease-out-natural);
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
+
+/* ==========================================================================
+   Tag Component: Disable Unwanted scaleX Flip / Zoom-in Animation
+   ========================================================================== */
+.el-tag,
+.el-tag.el-zoom-in-center-enter-active,
+.el-tag.el-zoom-in-center-leave-active,
+.el-tag.el-zoom-in-center-enter-from,
+.el-tag.el-zoom-in-center-leave-to {
+  transition: none !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+/* ==========================================================================
+   Button & Clickable Physical Tactile Feedback
+   ========================================================================== */
+.el-button:not(.is-disabled):not(.is-loading) {
+  transition:
+    color var(--motion-duration-fast) var(--ease-out-natural),
+    background-color var(--motion-duration-fast) var(--ease-out-natural),
+    border-color var(--motion-duration-fast) var(--ease-out-natural),
+    box-shadow var(--motion-duration-fast) var(--ease-out-natural),
+    transform var(--motion-duration-instant) var(--ease-out-natural);
+}
+
+.el-button:not(.is-disabled):not(.is-loading):active,
+.btn-press:active {
+  transform: scale(0.975) translateY(0.5px);
+}
+
+/* ==========================================================================
+   Card Hover Lift & Depth Utilities
+   ========================================================================== */
+.hover-lift {
+  transition:
+    transform var(--motion-duration-base) var(--ease-out-natural),
+    box-shadow var(--motion-duration-base) var(--ease-out-natural),
+    border-color var(--motion-duration-base) var(--ease-out-natural);
+  will-change: transform, box-shadow;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.08));
+}
+
+html.dark .hover-lift:hover {
+  box-shadow: var(--shadow-md, 0 4px 14px rgba(0, 0, 0, 0.4));
+}
+
+/* Improve default el-card transitions */
+.el-card {
+  transition:
+    box-shadow var(--motion-duration-base) var(--ease-out-natural),
+    border-color var(--motion-duration-base) var(--ease-out-natural),
+    background-color var(--motion-duration-base) var(--ease-out-natural);
+}
+
+/* ==========================================================================
+   Staggered Entrance Animation (Subtle Flow)
+   ========================================================================== */
+@keyframes naturalFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-item {
+  animation: naturalFadeInUp var(--motion-duration-slow) var(--ease-out-natural) both;
+}
+.stagger-item:nth-child(1) { animation-delay: 20ms; }
+.stagger-item:nth-child(2) { animation-delay: 50ms; }
+.stagger-item:nth-child(3) { animation-delay: 80ms; }
+.stagger-item:nth-child(4) { animation-delay: 110ms; }
+.stagger-item:nth-child(5) { animation-delay: 140ms; }
+.stagger-item:nth-child(6) { animation-delay: 170ms; }
+.stagger-item:nth-child(7) { animation-delay: 200ms; }
+.stagger-item:nth-child(8) { animation-delay: 230ms; }
+
+/* ==========================================================================
+   Icon & Interactive State Transitions
+   ========================================================================== */
+.icon-rotate-180 {
+  transition: transform var(--motion-duration-base) var(--ease-in-out-smooth);
+}
+.icon-rotate-180.is-active,
+.icon-rotate-180.is-expanded {
+  transform: rotate(180deg);
+}
+
+.icon-spin {
+  animation: naturalSpin 0.75s linear infinite;
+}
+@keyframes naturalSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Overlays & Floating Modals (Element Plus Polish)
+   ========================================================================== */
+.el-overlay {
+  transition: opacity var(--motion-duration-base) var(--ease-out-natural) !important;
+}
+
+.el-overlay-dialog {
+  animation-duration: var(--motion-duration-slow) !important;
+  animation-timing-function: var(--ease-out-natural) !important;
+}
+
+.el-dialog {
+  transition:
+    transform var(--motion-duration-slow) var(--ease-out-natural),
+    opacity var(--motion-duration-slow) var(--ease-out-natural) !important;
+}
+
+.el-drawer {
+  transition: transform var(--motion-duration-slow) var(--ease-out-natural) !important;
+}
+
+/* ==========================================================================
+   Tooltips & Floating Micro-Popovers: Natural Downward Slide-In Animation ("向下自然出现")
+   Smoothly translates down by 6px with opacity fade-in on enter,
+   leveraging CSS independent translate property so Floating UI positioning is preserved.
+   ========================================================================== */
+.el-fade-in-linear-enter-active,
+.el-popper.el-fade-in-linear-enter-active,
+.el-popper.el-tooltip.el-fade-in-linear-enter-active {
+  transition:
+    opacity var(--motion-duration-fast, 160ms) var(--ease-out-natural, cubic-bezier(0.16, 1, 0.3, 1)),
+    translate var(--motion-duration-fast, 160ms) var(--ease-out-natural, cubic-bezier(0.16, 1, 0.3, 1)) !important;
+  will-change: opacity, translate;
+}
+
+.el-fade-in-linear-leave-active,
+.el-popper.el-fade-in-linear-leave-active,
+.el-popper.el-tooltip.el-fade-in-linear-leave-active {
+  transition:
+    opacity 100ms var(--ease-in-swift, cubic-bezier(0.4, 0, 1, 1)),
+    translate 100ms var(--ease-in-swift, cubic-bezier(0.4, 0, 1, 1)) !important;
+  will-change: opacity, translate;
+}
+
+.el-fade-in-linear-enter-from,
+.el-popper.el-fade-in-linear-enter-from,
+.el-popper.el-tooltip.el-fade-in-linear-enter-from {
+  opacity: 0 !important;
+  translate: 0 -6px !important;
+}
+
+.el-fade-in-linear-enter-to,
+.el-popper.el-fade-in-linear-enter-to,
+.el-popper.el-tooltip.el-fade-in-linear-enter-to {
+  opacity: 1 !important;
+  translate: 0 0 !important;
+}
+
+.el-fade-in-linear-leave-from,
+.el-popper.el-fade-in-linear-leave-from,
+.el-popper.el-tooltip.el-fade-in-linear-leave-from {
+  opacity: 1 !important;
+  translate: 0 0 !important;
+}
+
+.el-fade-in-linear-leave-to,
+.el-popper.el-fade-in-linear-leave-to,
+.el-popper.el-tooltip.el-fade-in-linear-leave-to {
+  opacity: 0 !important;
+  translate: 0 -2px !important;
+}
+
+.el-dropdown-menu,
+.el-popper.is-light,
+.el-popper.is-dark {
+  transition:
+    opacity var(--motion-duration-fast) var(--ease-out-natural),
+    translate var(--motion-duration-fast) var(--ease-out-natural) !important;
+}
+
+/* ==========================================================================
+   Accessibility: Reduced Motion
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

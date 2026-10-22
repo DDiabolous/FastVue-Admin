@@ -12,5 +12,5 @@ COPY --chown=fastvue:fastvue alembic ./alembic
 COPY --chown=fastvue:fastvue alembic.ini ./
 COPY --chown=fastvue:fastvue manage.py ./
 USER fastvue
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers"]
+EXPOSE 8001
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--no-proxy-headers"]

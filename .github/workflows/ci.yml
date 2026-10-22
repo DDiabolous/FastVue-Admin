@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend:
+    name: Frontend (Test & Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run unit & regression tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build starter edition
+        working-directory: frontend
+        run: npm run build
+
+      - name: Build full edition
+        working-directory: frontend
+        run: npm run build:full
+
+  backend:
+    name: Backend (Lint, Migration & Integration Test)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: fastvue
+          POSTGRES_PASSWORD: fastvue_test_password
+          POSTGRES_DB: fastvue_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ">=0.12.18"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        working-directory: backend
+        run: uv sync --all-groups --locked
+
+      - name: Lint and format check (Ruff)
+        working-directory: backend
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Verify database migrations and schema consistency
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://fastvue:fastvue_test_password@localhost:5432/fastvue_test
+        run: |
+          uv run alembic upgrade head
+          uv run alembic check
+
+      - name: Run PostgreSQL integration tests
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgresql+asyncpg://fastvue:fastvue_test_password@localhost:5432/fastvue_test
+        run: uv run pytest -v
+
+  docker-compose:
+    name: Docker Compose (Smoke Test)
+    runs-on: ubuntu-latest
+    needs: [frontend, backend]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare environment configuration
+        run: |
+          echo "POSTGRES_PASSWORD=fastvue_smoke_test_pass" > .env
+          echo "ADMIN_PASSWORD=AdminPass123!" >> .env
+          echo "WEB_PORT=8080" >> .env
+
+      - name: Build images and initialize database
+        run: |
+          docker compose build
+          # Execute one-off database initialization with tools profile to seed admin and settings
+          docker compose --profile tools run --rm init
+
+      - name: Launch services
+        run: docker compose up -d api web
+
+      - name: Verify service health and endpoint responsiveness
+        run: |
+          # Wait up to 60 seconds for web and api to respond
+          for i in {1..12}; do
+            if curl -s -f http://127.0.0.1:8080/ > /dev/null && curl -s -f http://127.0.0.1:8080/api/health > /dev/null; then
+              echo "Web (/) and API (/api/health) smoke tests passed!"
+              exit 0
+            fi
+            echo "Waiting for services to become healthy ($i/12)..."
+            sleep 5
+          done
+          echo "Services failed to respond in time."
+          docker compose logs
+          exit 1
+
+      - name: Clean up containers
+        if: always()
+        run: docker compose down -v

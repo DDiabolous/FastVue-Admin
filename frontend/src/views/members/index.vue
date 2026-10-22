@@ -4,13 +4,8 @@
     title="会员管理示例"
     description="管理会员资料、等级与状态。统计及操作均使用本地演示数据。"
   >
-    <template #actions>
-      <el-button :icon="showStats ? ArrowUp : DataAnalysis" @click="showStats = !showStats">
-        {{ showStats ? '收起统计' : '展开统计' }}
-      </el-button>
-    </template>
-    <!-- Top KPI Stats Row (Collapsible, uncoupled from heading & gaps) -->
-    <div class="stats-collapse-box" :class="{ 'is-collapsed': !showStats }">
+    <!-- Top KPI Stats Row -->
+    <div class="stats-collapse-box">
       <div class="stats-collapse-inner">
         <el-row :gutter="16" class="stats-row">
           <el-col :xs="12" :sm="12" :lg="6">
@@ -758,7 +753,6 @@ import {
   Edit,
   ArrowDown,
   ArrowUp,
-  DataAnalysis,
   User,
   Opportunity,
   Medal,

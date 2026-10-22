@@ -1,0 +1,13 @@
+const guards = new Set()
+
+export function registerViewGuard(guard) {
+  guards.add(guard)
+  return () => guards.delete(guard)
+}
+
+export async function confirmViewDiscard() {
+  for (const guard of [...guards]) {
+    if (!(await guard())) return false
+  }
+  return true
+}

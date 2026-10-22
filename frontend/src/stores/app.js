@@ -3,6 +3,7 @@ import { nextTick } from 'vue'
 import { readPreference, writePreference, normalizeAppearance } from '@/utils/preferences'
 import { transitionTheme } from '@/utils/themeTransition'
 import { storageKey } from '@/config/app'
+import { confirmViewDiscard } from '@/utils/viewGuards'
 
 export const useAppStore = defineStore('app', {
   state: () => ({
@@ -14,6 +15,8 @@ export const useAppStore = defineStore('app', {
     searchVisible: false,
     themeChanging: false,
     appearanceVisible: false,
+    viewKey: 0,
+    viewReloading: false,
     notifications: [],
     favoritePaths: Array.isArray(readPreference('favorites', []))
       ? readPreference('favorites', []).filter((path) => typeof path === 'string')
@@ -73,6 +76,7 @@ export const useAppStore = defineStore('app', {
           theme: this.theme,
           accent: this.accent,
           density: this.density,
+          showPageTitle: this.showPageTitle,
           ...changes,
         }),
       )
@@ -80,6 +84,7 @@ export const useAppStore = defineStore('app', {
         theme: this.theme,
         accent: this.accent,
         density: this.density,
+        showPageTitle: this.showPageTitle,
       })
       this.applyAppearance()
     },
@@ -120,6 +125,18 @@ export const useAppStore = defineStore('app', {
     },
     clearNotifications() {
       this.notifications = []
+    },
+    async reloadView() {
+      if (this.viewReloading) return
+      this.viewReloading = true
+      try {
+        if (await confirmViewDiscard()) {
+          this.viewKey++
+          await nextTick()
+        }
+      } finally {
+        this.viewReloading = false
+      }
     },
   },
 })

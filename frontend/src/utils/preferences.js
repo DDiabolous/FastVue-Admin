@@ -27,5 +27,6 @@ export function normalizeAppearance(value = {}) {
     theme: ['light', 'dark', 'system'].includes(value.theme) ? value.theme : 'light',
     accent: accents.some((item) => item.value === value.accent) ? value.accent : '#2563eb',
     density: value.density === 'compact' ? 'compact' : 'comfortable',
+    showPageTitle: value.showPageTitle !== false,
   }
 }

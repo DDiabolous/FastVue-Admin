@@ -137,7 +137,7 @@ def main():
     for name, help_text in [('dev', '启动开发服务，自动重载'), ('serve', '启动生产服务，不重载')]:
         server = sub.add_parser(name, help=help_text)
         server.add_argument('--host', default='127.0.0.1')
-        server.add_argument('--port', type=valid_port, default=8000, metavar='PORT')
+        server.add_argument('--port', type=valid_port, default=8001, metavar='PORT')
     args = parser.parse_args()
     try:
         if args.command in {'dev', 'serve'}:

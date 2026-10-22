@@ -6,6 +6,8 @@ export const authApi = {
   logout: () => request('/auth/logout', { method: 'POST' }),
   profile: (body) => request('/auth/profile', { method: 'PATCH', body }),
   password: (body) => request('/auth/password', { method: 'POST', body }),
+  sessions: () => request('/auth/sessions'),
+  revokeSession: (id) => request(`/auth/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 }
 export const resourceApi = (resource) => ({
   list: (params) => request(`/${resource}?${new URLSearchParams(params)}`),

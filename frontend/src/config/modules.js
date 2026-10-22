@@ -1,5 +1,14 @@
 import { appConfig } from './app'
 
+// Group icons are separate from page icons so nested navigation stays concise.
+export const menuGroups = {
+  系统管理: { icon: 'Setting' },
+  日志管理: { icon: 'Document' },
+  开发示例: { icon: 'Monitor' },
+  可选模块: { icon: 'SetUp' },
+  业务示例: { icon: 'Briefcase' },
+}
+
 // Menu, route and permission metadata have one source of truth.
 export const modules = [
   {
@@ -86,6 +95,14 @@ export const modules = [
     component: () => import('@/views/examples/List.vue'),
   },
   {
+    path: '/examples/details', name: 'ExampleDetails', title: '复杂详情', group: '开发示例', icon: 'Tickets',
+    component: () => import('@/views/examples/Details.vue'),
+  },
+  {
+    path: '/examples/feedback', name: 'ExampleFeedback', title: '交互反馈', group: '开发示例', icon: 'ChatDotRound',
+    component: () => import('@/views/examples/Feedback.vue'),
+  },
+  {
     path: '/examples/form',
     name: 'ExampleForm',
     title: '表单与详情',
@@ -108,6 +125,14 @@ export const modules = [
     group: '开发示例',
     icon: 'Upload',
     component: () => import('@/views/examples/Upload.vue'),
+  },
+  {
+    path: '/examples/import-export',
+    name: 'ExampleImportExport',
+    title: '导入导出',
+    group: '开发示例',
+    icon: 'Download',
+    component: () => import('@/views/examples/ImportExport.vue'),
   },
   {
     path: '/profile',

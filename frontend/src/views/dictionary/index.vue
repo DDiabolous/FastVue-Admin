@@ -43,7 +43,9 @@
                 <span class="type-remark" v-if="item.remark">{{ item.remark }}</span>
               </div>
               <div class="type-actions" @click.stop>
-                <el-button link type="primary" :icon="Edit" size="small" @click="openEditTypeModal(item)" />
+                <el-tooltip content="编辑字典类型" placement="top">
+                  <el-button link type="primary" :icon="Edit" size="small" aria-label="编辑字典类型" @click="openEditTypeModal(item)" />
+                </el-tooltip>
                 <el-popconfirm
                   title="确定删除该字典类型吗？"
                   confirm-button-text="删除"
@@ -53,7 +55,9 @@
                   @confirm="handleDeleteType(item)"
                 >
                   <template #reference>
-                    <el-button link type="danger" :icon="Delete" size="small" />
+                    <el-tooltip content="删除字典类型" placement="top">
+                      <el-button link type="danger" :icon="Delete" size="small" aria-label="删除字典类型" />
+                    </el-tooltip>
                   </template>
                 </el-popconfirm>
               </div>

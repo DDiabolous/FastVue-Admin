@@ -1,0 +1,58 @@
+name: 缺陷反馈 (Bug Report)
+description: 提交 FastVue-Admin 在运行、构建或交互中遇到的问题
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈问题！在提交之前，请确保已搜索过已有关闭或开启的 Issue，避免重复提单。
+  - type: input
+    id: version
+    attributes:
+      label: 项目版本 / Commit Hash
+      description: 您当前使用的分支或 commit 标识
+      placeholder: 例如：main 分支 commit abc1234
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 请选择发生问题的模块
+      options:
+        - "纯前端 Mock 模式 (VITE_USE_MOCK=true)"
+        - "前后端集成模式 (FastAPI + PostgreSQL)"
+        - "Docker Compose 容器部署"
+        - "其他环境"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 问题复现步骤
+      description: 请尽可能详细地描述复现该问题的具体步骤
+      placeholder: |
+        1. 启动项目：npm run dev
+        2. 点击左侧菜单中的 ...
+        3. 发生报错 ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期表现
+      placeholder: 预期应当正常展示列表数据，没有抛出异常
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 错误日志与控制台输出
+      description: 请粘贴浏览器控制台 (Console) 或后端日志终端中的报错信息（请使用代码块格式）
+      render: shell
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图或录屏 (可选)
+      description: 可以将图片拖拽到此处

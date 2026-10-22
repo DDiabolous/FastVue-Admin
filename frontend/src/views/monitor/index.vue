@@ -4,9 +4,6 @@
     title="服务监控示例"
     description="展示资源指标、服务状态与运行日志。当前数据为本地模拟值，不代表真实监控。"
   >
-    <template #actions>
-      <el-button :icon="Refresh" @click="refreshHealthMetrics">刷新指标</el-button>
-    </template>
     <!-- Top Hardware Resource Row -->
     <el-row :gutter="16" class="res-row">
       <!-- CPU Usage Card -->

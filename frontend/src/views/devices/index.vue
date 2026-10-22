@@ -1345,10 +1345,19 @@ const formDraft = useBusinessDraft(deviceDialogVisible, deviceFormData, submitLo
 
 .tile-footer {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-evenly;
   padding-top: 10px;
   border-top: 1px solid var(--border-light);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.tile-footer .el-button {
+  flex-shrink: 0;
+  padding: 6px 14px;
 }
 
 /* Broker Notice in Command Dialog */

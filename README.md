@@ -1,117 +1,193 @@
 # FastVue-Admin
 
-基于 Vue 3、Element Plus、Pinia 和 Vite 的通用后台开发底座。默认界面不绑定设备、资产或企业组织，适合在此基础上开发内容、运营、电商、内部工具等后台。
+<p align="center">
+  <img src="https://img.shields.io/badge/Vue-3.5+-4FC08D?logo=vuedotjs&logoColor=white" alt="Vue 3" />
+  <img src="https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white" alt="Python 3.12+" />
+  <img src="https://img.shields.io/badge/Node-22.12+-339933?logo=nodedotjs&logoColor=white" alt="Node 22+" />
+  <img src="https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 17" />
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License MIT" />
+  <img src="https://img.shields.io/github/actions/workflow/status/DDiabolous/FastVue-Admin/ci.yml?branch=main&label=CI" alt="CI Status" />
+</p>
 
-提供精简模板与完整业务演示两种模式，便于从基础管理功能开始，按需扩展业务模块。提供 Vue 前端、浏览器 Mock 和基于 FastAPI + PostgreSQL 的核心后端，可按需选择纯前端演示或全栈运行。
+基于 **Vue 3、Element Plus、Pinia、Vite** 与 **FastAPI、SQLAlchemy、PostgreSQL** 的现代化企业级后台脚手架。
 
-## 功能特性
+原生不绑定特定垂直行业（设备、资产或特定企业模型），专注于提供通用而优雅的底座，适合在此基础上高效自研内容、运营、电商、企业协同及内部管理后台。
 
-- **基础管理**：用户、角色、数据字典、系统设置、日志和个人中心。
-- **模块配置**：菜单、路由与访问权限共用模块声明，支持按模式启用功能。
-- **开发示例**：列表、表单详情、树形列表和本地文件选择。
-- **界面定制**：默认蓝色主题，支持切换主题色、亮暗模式和表格密度；主题按钮提供圆形展开与收起动画。
-- **操作效率**：`⌘/Ctrl + K` 搜索页面，收藏与最近访问，表格列显隐、列宽及查询偏好持久化。
-- **统一布局**：复用页面容器、筛选面板、统计卡片与表格工具栏，适配移动端。
-- **数据接入**：统一请求层支持 Mock 与真实 HTTP 切换，提供接口约定文档。
+---
 
-## 快速启动
+## 📸 界面效果与本地体验
 
+> [!NOTE]
+> 🌐 **在线演示环境**：公网在线 Demo 正在筹备部署中。推荐在本地使用**纯前端 Mock 模式**秒级启动，无需安装配置任何数据库，直接开箱体验完整增删改查：
+> ```bash
+> cd frontend && npm ci && npm run dev
+> ```
+> 浏览器打开 [http://localhost:5173](http://localhost:5173) 即可进入系统。
+
+系统已内置多维度视觉体验：
+
+- **🌞 亮色模式 (Light)**：清爽典雅的蓝白质感，统一的表格间距、筛选栏高度与紧凑度。
+- **🌙 暗色模式 (Dark)**：舒适护眼的暗黑配色，搭载原生视图过渡的圆形向外扩散动效。
+- **📱 移动端自适应 (Mobile)**：侧边栏抽屉折叠、移动端卡片自适应缩放与触控友好交互。
+*(可在本地启动后点击右上角主题切换按钮，或在浏览器开发者工具中开启移动设备仿真进行体验)*
+
+---
+
+## ⚡ Starter vs Full 模式差异
+
+FastVue-Admin 内置两套预设模式，兼顾“快速二次开发自研”与“复杂业务模式参考”：
+
+| 对比维度 | 🚀 Starter（精简起步模式，推荐自研） | 📦 Full（完整业务演示模式） |
+| :--- | :--- | :--- |
+| **定位用途** | **最纯粹的二开骨架**，剥离垂直业务逻辑，便于从零打造新系统 | **全功能综合展示**，包含大量复杂业务 UI 模板供临摹参考 |
+| **预设菜单模块** | 仪表盘工作台、用户/角色/字典/系统设置/日志/个人中心、开发示例通用组件 | 在 Starter 基础上额外包含：**会员管理、设备运维、资产流转、服务监控看板、部门组织树** |
+| **本地启动** | `npm run dev` | `npm run dev:full` |
+| **构建发布** | `npm run build` | `npm run build:full` |
+| **打包体积** | 仅打包通用管理代码，体积轻巧无冗余 | 包含全部行业模板组件 |
+| **后端范围** | 全面支持真实 FastAPI + PostgreSQL 接口对接 | 行业拓展页使用前端本地 Mock 供 UI 交互预览 |
+
+---
+
+## ✨ 核心特性
+
+- **开箱即用的系统管理**：用户管理、角色管理（RBAC 逐接口/按钮权限）、数据字典、系统设置、审计日志与个人中心（含头像与登录会话管理）。
+- **配置驱动的模块体系**：菜单、路由与访问权限共用模块声明（`src/config/modules.js`），自动装配侧边栏与面包屑。
+- **可复用的开发示例**：项目列表、卡片、分步表单和详情共享示例数据；提供树形目录维护、图片裁剪、模拟上传重试、CSV 重复处理及交互反馈。各页“页面用法”提供源码位置和接入说明，详见 [示例复用指南](docs/development.md#开发示例复用)。
+- **现代化交互与操作效率**：
+  - `⌘/Ctrl + K` 全局快捷搜寻页面与常用功能。
+  - 收藏夹与最近访问历史记录。
+  - 表格列显隐、列宽及查询条件自动持久化存储。
+  - 圆形向外扩散的无闪烁平滑暗黑模式过渡动画。
+- **灵活的数据双轨架构**：
+  - **无依赖纯前端 Mock**：无需安装数据库即可完整体验全部增删改查。演示数据及个人图片保存在浏览器 IndexedDB 中，旧版 localStorage 数据会自动迁移，迁移成功后才清理旧副本。
+  - **生产级后端 API**：基于 FastAPI、SQLAlchemy 异步 ORM、PostgreSQL 与 Alembic 数据库迁移。
+- **工程化与质量保证**：完善的 GitHub Actions 持续集成自动化测试、Ruff 代码规范检查、RFC 4180 CSV 状态机解析与 Docker Compose 容器编排。
+
+---
+
+## 🚀 快速启动
+
+### 方式一：纯前端启动（免后端/开箱即用）
 建议使用 Node.js 22.12+ 和 npm。在仓库根目录执行：
 
 ```bash
 cd frontend
 npm ci
-npm run dev
+npm run dev        # 启动 Starter 精简模式
+# 或 npm run dev:full  # 启动 Full 完整演示模式
 ```
 
-默认地址为 [本机 5173 端口](http://localhost:5173)；端口占用时，以终端输出为准。
+默认访问地址为 [http://localhost:5173](http://localhost:5173)。
 
-初始演示账号：
+演示账号说明：
 
 | 账号 | 密码 | 权限 |
-| --- | --- | --- |
-| admin | admin123 | 全部系统功能 |
-| editor | editor123 | 用户和字典的查看、维护 |
-| viewer | viewer123 | 用户和字典只读 |
+| :--- | :--- | :--- |
+| **admin** | admin123 | 超级管理员，拥有全部权限 |
+| **editor** | editor123 | 编辑员，可维护用户与字典 |
+| **viewer** | viewer123 | 只读用户，仅可查看 |
 
-Mock 数据保存在当前浏览器中，修改后会持久保存，密码修改后使用新密码登录。Mock 认证和本地权限仅用于演示，不能作为生产环境的安全边界。
+---
 
-## 启动真实后端
+### 方式二：全栈启动（FastAPI + PostgreSQL）
 
-后端使用 uv 管理 Python 环境与依赖，采用 Python 3.12+、FastAPI、SQLAlchemy 异步 ORM 和 PostgreSQL。完整步骤见 [后端启动与部署](backend/README.md)。准备数据库并配置 `backend/.env` 后：
+1. **环境准备与依赖安装**：
+   后端使用现代 Python 包管理器 `uv`（Python 3.12+）：
+   ```bash
+   cd backend
+   uv sync
+   ```
+
+2. **数据库初始化与启动**：
+   复制配置文件并配置数据库连接（`backend/.env`），然后执行数据库迁移与管理员初始化：
+   ```bash
+   uv run --locked manage.py setup   # 自动完成 alembic upgrade head 并初始化 admin 账号
+   uv run --locked manage.py dev     # 启动后端服务 (端口 8001)
+   ```
+
+3. **前端对接真实后端**：
+   在 `frontend/.env.local` 中配置：
+   ```ini
+   VITE_USE_MOCK=false
+   VITE_API_BASE_URL=/api/v1
+   ```
+   重新执行 `npm run dev` 即可，Vite 开发服务器会自动将 `/api/v1` 代理至本地 `http://127.0.0.1:8001`。
+   后端 API Swagger 接口文档位于：`http://127.0.0.1:8001/docs`。
+
+---
+
+### 方式三：Docker Compose 一键容器化部署
+
+根目录提供了生产就绪的容器编排：
 
 ```bash
-cd backend
-uv run --locked manage.py setup
-uv run --locked manage.py dev
+# 1. 复制环境变量模板并设置强密码
+cp .env.example .env
+
+# 2. 首次运行：执行数据库迁移与管理员账号初始化 (需 tools profile)
+docker compose --profile tools run --rm init
+
+# 3. 启动常驻服务集群 (PostgreSQL, FastAPI API, Nginx Web)
+docker compose up -d
+
+# 4. 服务入口
+# 前端 Web 界面：http://localhost:8080
+# API 健康检查：http://localhost:8080/api/health
+# 后端 API Swagger 文档（开发调试）：http://127.0.0.1:8001/docs
 ```
 
-`setup` 合并数据库迁移和按需初始化，后续启动只需运行 `uv run --locked manage.py dev`。初始化时设置管理员密码，账号为 `admin`，默认不会创建固定密码演示用户。前端在 `frontend/.env.local` 设置 `VITE_USE_MOCK=false`、`VITE_API_BASE_URL=/api/v1`，重启 Vite 即可；开发代理默认转发到本机 8000 端口。
+---
 
-也可使用根目录的 Docker Compose 配置完成数据库迁移、初始化和部署。后端具备服务端会话撤销、逐接口权限、登录限流和审计日志；API 文档位于 `http://127.0.0.1:8000/docs`。
+## 📖 开发与学习文档
 
-## 两种启动模式
+- 🌟 **[从零开发“公告管理”端到端实战教程](docs/tutorial-notice.md)**：**强烈推荐！** 严格按项目当前架构实测跑通：涵盖数据库模型迁移、FastAPI 接口开发、权限配置到 Vue3 页面交互构建的全流程。
+- 📘 **[二次开发规范与脚手架扩展](docs/development.md)**：深入了解布局容器、表单草稿复用、表格偏好缓存等进阶能力。
+- 🔌 **[后端接口约定与安全鉴权规范](docs/api.md)**：前后端通信协议、分页规范、错误码及鉴权规则。
+- 🛡️ **[生产运维与容灾保障指南](docs/maintenance.md)**：链路 Request ID 机制、结构化错误日志、PostgreSQL 自动化备份与灾难恢复实操。
+- 🛠️ **[后端架构与部署运维说明](backend/README.md)**：数据库连接池、Alembic 迁移机制与性能调优。
 
-- `npm run dev`：精简启动，包含工作台、系统管理、日志、个人中心和开发示例。
-- `npm run dev:full`：完整演示，额外启用设备、资产、会员、服务监控及组织示例。
-- `npm run build` / `npm run build:full`：构建对应版本。
-- `npm run preview`：本地预览最近一次构建的产物。
-- `npm test`：验证演示认证、授权、持久化、审计及主题切换逻辑。
+---
 
-以上命令均在 `frontend/` 目录执行。构建产物位于 `frontend/dist/`，可部署到静态站点服务；部署时需为前端路由配置回退到 `index.html`。
-
-## 配置与二次开发
-
-可参考 [frontend/.env.example](frontend/.env.example) 创建 `frontend/.env.local`，只填写需要覆盖的配置：
-
-| 配置项 | 用途 | 默认值 |
-| --- | --- | --- |
-| `VITE_APP_TITLE` | 应用名称 | `FastVue-Admin` |
-| `VITE_STORAGE_PREFIX` | 浏览器存储前缀 | `fastvue` |
-| `VITE_USE_MOCK` | 是否使用浏览器 Mock | `true` |
-| `VITE_API_BASE_URL` | 后端接口地址 | `/api/v1` |
-| `VITE_APP_PRESET` | 模块预设 | `starter` |
-| `VITE_ENABLE_ORGANIZATION` | 是否启用组织示例 | `false` |
-
-环境变量修改后需重启开发服务。`.env.local` 中显式配置的值会覆盖模式文件；若需要通过 `dev:full` 切换完整演示，请勿在 `.env.local` 固定精简模式的模块开关。
-
-新增页面时，在 `src/config/modules.js` 注册模块，并按需扩展页面、API 与权限配置。详细步骤见 [二次开发指南](docs/development.md)，后端对接见 [接口约定](docs/api.md)。
-
-## 已实现与接入边界
-
-默认系统页面通过 `src/api/` 访问数据，支持 Mock 与真实 HTTP 两种实现。核心后端已实现认证、用户、角色、字典、配置及审计；设置 `VITE_USE_MOCK=false` 后可连接 PostgreSQL 后端。
-
-- 菜单、路由和访问权限统一由 `src/config/modules.js` 声明。
-- 用户、角色、数据字典支持基础增删改查，用户创建需设置至少 8 位密码。
-- 菜单配置页为只读预览，修改代码配置后生效，不提供运行时菜单管理。
-- Mock 模式日志记录浏览器演示事件；真实 API 模式由服务端记录登录与关键写操作审计。
-- 列表、树形列表、表单详情、文件选择示例不依赖具体业务；上传示例不发送文件。
-- 可选组织与行业示例仍使用原有 `mockData.js`，仅供界面参考，不属于真实 API 接入范围；仅管理员可访问。
-- 多租户、数据范围授权、真实监控、文件存储、邮件通知尚未实现。
-
-## 目录
+## 🗂️ 目录结构
 
 ```text
-frontend/src/
-  api/                 统一请求与接口方法
-  config/              应用、模块、权限和资源字段配置
-  mock/                默认系统模块的浏览器演示适配器
-  components/admin/    页面容器、筛选面板、统计卡片、表格工具栏
-  composables/         表格偏好、业务列表和表单草稿等复用逻辑
-  directives/          v-auth 权限指令
-  views/system/        默认系统页面
-  views/examples/      行业无关的开发示例
-  views/equipment/     可选业务示例，复用模板 UI（其余同类目录见文档）
-backend/               FastAPI 核心后端、PostgreSQL 迁移与集成测试
-compose.yaml           数据库、迁移、API 与前端容器配置
-docs/                  二次开发与接口约定
-LICENSE                MIT 开源许可
+├── .github/               # GitHub Actions CI 工作流与社区协作模板
+├── frontend/              # Vue 3 前端工程
+│   ├── src/
+│   │   ├── api/           # 统一请求层与接口方法
+│   │   ├── config/        # 模块、路由、权限声明
+│   │   ├── components/    # 页面容器、筛选面板等中后台通用组件
+│   │   ├── composables/   # 表格偏好、RFC 4180 CSV 导入导出等复用逻辑
+│   │   └── views/         # 页面视图（系统管理、业务模块与开发示例）
+│   └── tests/             # 前端自动化测试用例 (含 CSV 解析测试)
+├── backend/               # FastAPI 核心后端
+│   ├── alembic/           # 数据库版本迁移脚本 (0001, 0002)
+│   ├── app/               # 后端应用核心（API 路由、ORM 模型、依赖注入）
+│   └── tests/             # PostgreSQL 集成测试集
+├── docs/                  # 开发文档、实操教程与运维手册
+├── compose.yaml           # Docker Compose 生产与测试编排
+└── CHANGELOG.md           # 版本演进与更新日志
 ```
 
-## 参与贡献
+---
 
-欢迎通过 Issue 报告问题或提出建议，也欢迎提交 Pull Request。提交前请在 `frontend/` 目录运行 `npm test`、`npm run build` 和 `npm run build:full`；涉及界面的调整请附上对应模式和截图。后端改动需运行 PostgreSQL 集成测试及迁移检查，方法见后端 README。
+## 🤝 参与贡献与社区
 
-## 开源许可
+我们极其欢迎任何形式的贡献！无论是发现 Bug、提出 Feature 建议，还是提交优化代码：
 
-本项目采用 [MIT License](LICENSE)，版权归属为 `Copyright (c) 2026 DDiabolous`。第三方依赖及素材遵循各自的许可声明。
+- 提交代码前，请务必阅读 **[贡献指南 (CONTRIBUTING.md)](.github/CONTRIBUTING.md)**。
+- 发现安全缺陷请参阅 **[安全策略 (SECURITY.md)](.github/SECURITY.md)** 进行负责任的私下披露。
+- 查看最新版本演进与发布历史请阅读 **[更新日志 (CHANGELOG.md)](CHANGELOG.md)**。
+
+提交前请确认本地验证通过：
+```bash
+cd frontend && npm test && npm run build && npm run build:full
+cd ../backend && uv run ruff check . && uv run ruff format --check .
+```
+
+---
+
+## 📄 开源许可
+
+本项目采用 [MIT License](LICENSE)，版权归属为 `Copyright (c) 2026 DDiabolous`。

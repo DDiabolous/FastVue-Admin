@@ -14,7 +14,7 @@ FastAPI + SQLAlchemy 2 异步 ORM + PostgreSQL 的通用后台核心。业务接
 | 生产启动 | `uv run --locked --no-dev manage.py serve` |
 | 查看命令帮助 | `uv run --locked manage.py --help` |
 
-`setup` 合并迁移与按需初始化，重复执行不会重置账号。`dev` 默认开启重载，`serve` 默认关闭重载，二者默认监听 `127.0.0.1:8000` 并关闭代理头信任。
+`setup` 合并迁移与按需初始化，重复执行不会重置账号。`dev` 默认开启重载，`serve` 默认关闭重载，二者默认监听 `127.0.0.1:8001` 并关闭代理头信任。
 
 ## Python 环境与依赖
 
@@ -59,10 +59,10 @@ VITE_USE_MOCK=false
 VITE_API_BASE_URL=/api/v1
 ```
 
-然后在 `frontend/` 执行 `npm ci && npm run dev`。Vite 默认将 `/api` 代理到 `http://127.0.0.1:8000`，如需其他地址，在启动 Vite 前设置 `API_PROXY_TARGET`。切换真实 API 与 Mock 时请退出旧会话，二者使用不同的身份与数据。
+然后在 `frontend/` 执行 `npm ci && npm run dev`。Vite 默认将 `/api` 代理到 `http://127.0.0.1:8001`，如需其他地址，在启动 Vite 前设置 `API_PROXY_TARGET`。切换真实 API 与 Mock 时请退出旧会话，二者使用不同的身份与数据。
 
-- API 文档：[打开接口文档](http://127.0.0.1:8000/docs)
-- 就绪检查：[检查服务状态](http://127.0.0.1:8000/api/health)。数据库连接、迁移与管理员初始化正常才返回 200。
+- API 文档：[打开接口文档](http://127.0.0.1:8001/docs)
+- 就绪检查：[检查服务状态](http://127.0.0.1:8001/api/health)。数据库连接、迁移与管理员初始化正常才返回 200。
 - 接口契约：[docs/api.md](../docs/api.md)
 
 ## 服务器部署（uv）

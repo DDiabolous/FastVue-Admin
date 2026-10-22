@@ -1,0 +1,30 @@
+name: 功能建议 (Feature Request)
+description: 为 FastVue-Admin 提出新功能、改进或优化建议
+title: "[Feat]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您为 FastVue-Admin 提出宝贵的改进建议！
+  - type: textarea
+    id: problem
+    attributes:
+      label: 您的需求场景与痛点
+      description: 您遇到了什么业务需求，或者当前项目在哪个环节使用起来不够顺手？
+      placeholder: 在开发某些业务时，发现缺少...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 期望的解决方案
+      description: 您希望 FastVue-Admin 增加怎样的能力或组件设计？
+      placeholder: 建议在...模块增加...支持...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案或补充说明
+      description: 是否有考虑过其他替代做法，或参考过其他成熟设计？

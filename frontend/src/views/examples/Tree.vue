@@ -1,15 +1,28 @@
 <template>
   <PageContainer
-    class="example-tree-page"
+    class="business-page example-page example-tree-page"
     title="树形列表"
     description="适用于分类、栏目、目录等层级数据。示例展示树形表格与可过滤目录。"
   >
+    <template #actions>
+      <ExampleGuide
+        source="Tree.vue"
+        scope="目录操作保存在当前页面内存中，刷新后恢复初始数据。拖拽排序不调用后端。"
+        :features="[
+          '目录搜索与节点定位',
+          '树与表格共享数据',
+          '新增、编辑、父级调整与删除确认',
+          '拖拽排序、展开与收起',
+        ]"
+      />
+    </template>
     <el-row :gutter="20">
       <el-col :xs="24" :lg="8">
         <el-card shadow="never" class="tree-card">
           <template #header>
-            <div class="card-header">
-              <span class="card-title">可过滤目录</span>
+            <div class="card-header flex-between">
+              <span class="card-title">项目目录</span>
+              <el-button link type="primary" @click="editNode()">新增目录</el-button>
             </div>
           </template>
           <el-input v-model="keyword" placeholder="筛选目录" clearable class="starter-gap" />
@@ -18,6 +31,9 @@
             :data="data"
             node-key="id"
             default-expand-all
+            draggable
+            @node-drop="ElMessage.success('目录顺序已更新')"
+            @node-click="selectNode"
             :filter-node-method="filter"
             :props="{ label: 'name' }"
           />
@@ -40,6 +56,7 @@
             row-key="id"
             :default-expand-all="isTableExpanded"
             stripe
+            highlight-current-row
             style="width: 100%"
           >
             <el-table-column prop="name" label="名称" min-width="220">
@@ -63,15 +80,66 @@
             <el-table-column label="状态" width="100" align="center">
               <template #default="{ row }"><StatusTag :value="row.status" /></template>
             </el-table-column>
+            <el-table-column label="操作" width="170" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="editNode(null, row.id)">新增</el-button>
+                <el-button link type="primary" @click="editNode(row)">编辑</el-button>
+                <el-button link type="danger" @click="removeNode(row)">删除</el-button>
+              </template>
+            </el-table-column>
           </el-table>
         </el-card>
       </el-col>
     </el-row>
+    <el-dialog
+      class="business-overlay"
+      v-model="editorVisible"
+      :title="editor.id ? '编辑目录' : '新增目录'"
+      width="min(480px, 94vw)"
+    >
+      <el-form ref="editorRef" :model="editor" label-position="top" @submit.prevent="saveNode">
+        <el-form-item
+          label="名称"
+          prop="name"
+          :rules="[{ required: true, whitespace: true, message: '请输入名称' }]"
+        >
+          <el-input v-model="editor.name" maxlength="80" />
+        </el-form-item>
+        <el-form-item
+          label="标识"
+          prop="key"
+          :rules="[
+            { required: true, message: '请输入唯一标识' },
+            { pattern: /^[A-Za-z0-9_-]+$/, message: '仅支持字母、数字、下划线与连字符' },
+          ]"
+        >
+          <el-input v-model="editor.key" maxlength="50" />
+        </el-form-item>
+        <el-form-item label="父级目录">
+          <el-tree-select
+            v-model="editor.parentId"
+            :data="parentOptions"
+            :props="{ label: 'name', value: 'id' }"
+            check-strictly
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="启用">
+          <el-switch v-model="editor.status" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editorVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveNode">保存</el-button>
+      </template>
+    </el-dialog>
   </PageContainer>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, reactive, computed, nextTick } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import ExampleGuide from '@/components/examples/ExampleGuide.vue'
 import { FolderOpened, Document, Sort } from '@element-plus/icons-vue'
 import PageContainer from '@/components/admin/PageContainer.vue'
 import StatusTag from '@/components/admin/StatusTag.vue'
@@ -96,7 +164,7 @@ const toggleTableExpand = () => {
   toggleRowExpansionAll(data, isTableExpanded.value)
 }
 
-const data = [
+const data = reactive([
   {
     id: 1,
     name: '示例目录',
@@ -113,9 +181,96 @@ const data = [
       { id: 4, name: '归档分类', key: 'archive', status: 0 },
     ],
   },
-]
+])
 const filter = (value, node) => !value || node.name.includes(value)
 watch(keyword, (value) => tree.value?.filter(value))
+
+const editorVisible = ref(false),
+  editorRef = ref()
+const editor = reactive({ id: null, name: '', key: '', status: 1, parentId: 0 })
+function findNode(id, nodes = data, parentId = 0) {
+  for (const node of nodes) {
+    if (node.id === id) return { node, siblings: nodes, parentId }
+    const found = findNode(id, node.children || [], node.id)
+    if (found) return found
+  }
+}
+function descendants(node) {
+  return [node.id, ...(node.children || []).flatMap(descendants)]
+}
+const parentOptions = computed(() => {
+  const current = editor.id ? findNode(editor.id)?.node : null
+  const excluded = new Set(current ? descendants(current) : [])
+  const copy = (nodes) =>
+    nodes.map((node) => ({
+      id: node.id,
+      name: node.name,
+      disabled: excluded.has(node.id),
+      children: copy(node.children || []),
+    }))
+  return [{ id: 0, name: '根目录', children: copy(data) }]
+})
+function editNode(row, parentId = 0) {
+  Object.assign(
+    editor,
+    { id: null, name: '', key: '', status: 1, parentId },
+    row
+      ? {
+          id: row.id,
+          name: row.name,
+          key: row.key,
+          status: row.status,
+          parentId: findNode(row.id).parentId,
+        }
+      : {},
+  )
+  editorVisible.value = true
+  nextTick(() => editorRef.value?.clearValidate())
+}
+function selectNode(row) {
+  treeTableRef.value?.setCurrentRow(row)
+}
+async function saveNode() {
+  if (!(await editorRef.value.validate().catch(() => false))) return
+  const flatten = (nodes) => nodes.flatMap((node) => [node, ...flatten(node.children || [])])
+  if (flatten(data).some((node) => node.key === editor.key && node.id !== editor.id)) {
+    ElMessage.error('标识已存在')
+    return
+  }
+  const current = editor.id ? findNode(editor.id) : null
+  if (current && descendants(current.node).includes(editor.parentId)) {
+    ElMessage.error('父级不能是当前目录或其子目录')
+    return
+  }
+  const parent = editor.parentId ? findNode(editor.parentId)?.node : null
+  if (editor.parentId && !parent) {
+    ElMessage.error('父级目录不存在')
+    return
+  }
+  const node = current?.node || { id: crypto.randomUUID() }
+  if (current) current.siblings.splice(current.siblings.indexOf(node), 1)
+  Object.assign(node, { name: editor.name.trim(), key: editor.key, status: editor.status })
+  if (parent) (parent.children ||= []).push(node)
+  else data.push(node)
+  editorVisible.value = false
+  await nextTick()
+  tree.value?.filter(keyword.value)
+  ElMessage.success('目录已保存')
+}
+async function removeNode(row) {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除“${row.name}”及其 ${descendants(row).length - 1} 个子目录？`,
+      '删除目录',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  const found = findNode(row.id)
+  found.siblings.splice(found.siblings.indexOf(found.node), 1)
+  ElMessage.success('目录已删除')
+}
 </script>
 
 <style scoped>
@@ -253,8 +408,8 @@ watch(keyword, (value) => tree.value?.filter(value))
   }
 }
 
-:deep(tr.el-table__row--level-1:not([style*="display: none"])),
-:deep(tr.el-table__row--level-2:not([style*="display: none"])) {
+:deep(tr.el-table__row--level-1:not([style*='display: none'])),
+:deep(tr.el-table__row--level-2:not([style*='display: none'])) {
   animation: treeRowEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -274,10 +429,11 @@ watch(keyword, (value) => tree.value?.filter(value))
   background: var(--tree-expand-bg);
   border: 1px solid var(--tree-expand-border);
   cursor: pointer;
-  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
-              background-color 0.2s ease,
-              border-color 0.2s ease,
-              color 0.2s ease !important;
+  transition:
+    transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease !important;
 }
 :deep(.el-table__expand-icon--expanded) {
   transform: rotate(90deg) !important;

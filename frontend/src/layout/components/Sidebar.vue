@@ -2,8 +2,10 @@
   <aside class="sidebar-wrapper" :class="{ 'is-collapsed': appStore.sidebarCollapsed }">
     <!-- Brand / Logo Area -->
     <div class="sidebar-logo-container" @click="goHome">
-      <div class="logo-icon-box">
-        <el-icon :size="22" color="#ffffff"><Management /></el-icon>
+      <div class="logo-mark-slot">
+        <div class="logo-icon-box">
+          <el-icon :size="22" color="#ffffff"><Management /></el-icon>
+        </div>
       </div>
       <transition name="fade-slide">
         <div v-show="!appStore.sidebarCollapsed" class="logo-text-box">
@@ -28,13 +30,19 @@
 
     <!-- Sidebar Bottom Collapse Toggle -->
     <div class="sidebar-footer">
-      <div class="collapse-btn" @click="appStore.toggleSidebar">
-        <el-icon :size="16">
-          <Fold v-if="!appStore.sidebarCollapsed" />
-          <Expand v-else />
-        </el-icon>
-        <span v-if="!appStore.sidebarCollapsed" class="collapse-text">收起导航</span>
-      </div>
+      <el-tooltip
+        :content="appStore.sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'"
+        placement="right"
+        :disabled="!appStore.sidebarCollapsed"
+      >
+        <div class="collapse-btn" @click="appStore.toggleSidebar">
+          <el-icon class="collapse-icon-slot" :size="16">
+            <Fold v-if="!appStore.sidebarCollapsed" />
+            <Expand v-else />
+          </el-icon>
+          <span v-if="!appStore.sidebarCollapsed" class="collapse-text">收起导航</span>
+        </div>
+      </el-tooltip>
     </div>
   </aside>
 </template>
@@ -42,7 +50,7 @@
 <script setup>
 import { computed } from 'vue'
 import MenuNode from '@/components/admin/MenuNode.vue'
-import { modules } from '@/config/modules'
+import { menuGroups, modules } from '@/config/modules'
 import { appConfig } from '@/config/app'
 import { useUserStore } from '@/stores/user'
 import { useRoute, useRouter } from 'vue-router'
@@ -63,7 +71,7 @@ const menuItems = computed(() => {
     }
     let group = items.find((entry) => entry.title === item.group && entry.children)
     if (!group) {
-      group = { title: item.group, children: [] }
+      group = { title: item.group, icon: menuGroups[item.group]?.icon || 'Grid', children: [] }
       items.push(group)
     }
     group.children.push(item)
@@ -82,6 +90,8 @@ const goHome = () => {
 
 <style scoped>
 .sidebar-wrapper {
+  --sidebar-item-inset: 10px;
+  --sidebar-icon-slot-width: calc(var(--sidebar-collapsed-width) - 1px - var(--sidebar-item-inset) - var(--sidebar-item-inset));
   width: var(--sidebar-width);
   height: 100vh;
   background-color: var(--sidebar-bg);
@@ -103,15 +113,24 @@ const goHome = () => {
 
 .sidebar-logo-container {
   height: var(--header-height);
-  padding: 0 16px;
+  padding: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0;
+  overflow: hidden;
   cursor: pointer;
   border-bottom: 1px solid var(--border-color);
   user-select: none;
   background-color: var(--sidebar-bg);
   transition: background-color 0.25s ease;
+}
+
+.logo-mark-slot {
+  width: calc(var(--sidebar-collapsed-width) - 1px);
+  height: 100%;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
 }
 
 .logo-icon-box {
@@ -157,6 +176,24 @@ const goHome = () => {
   background-color: transparent !important;
   --el-menu-bg-color: transparent !important;
   --el-menu-hover-bg-color: transparent !important;
+}
+
+/* Fixed icon slots keep the same anchor throughout sidebar width transitions. */
+.sidebar-menu {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+:deep(.sidebar-menu > .el-menu-item),
+:deep(.sidebar-menu > .el-sub-menu > .el-sub-menu__title),
+:deep(.sidebar-menu > .el-menu-item > .el-menu-tooltip__trigger) {
+  padding: 0 !important;
+  justify-content: flex-start;
+}
+
+:deep(.sidebar-menu .menu-primary-icon) {
+  width: var(--sidebar-icon-slot-width) !important;
+  flex: 0 0 var(--sidebar-icon-slot-width);
 }
 
 /* Menu Item & Submenu Title - Driven by CSS variables so theme transitions 100% reliably */
@@ -223,8 +260,12 @@ const goHome = () => {
   padding: 4px 0;
 }
 
+:deep(.el-menu--inline .el-menu-item) {
+  padding-left: 54px !important;
+}
+
 :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-  color: var(--text-main) !important;
+  color: var(--menu-active-text) !important;
 }
 
 :deep(.el-sub-menu.is-active > .el-sub-menu__title .el-icon) {
@@ -237,7 +278,7 @@ const goHome = () => {
   border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 var(--sidebar-item-inset);
   background-color: var(--sidebar-bg);
   transition: background-color 0.25s ease;
 }
@@ -245,12 +286,12 @@ const goHome = () => {
 .collapse-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   color: var(--text-muted);
   cursor: pointer;
   font-size: 13px;
   width: 100%;
-  padding: 6px 4px;
+  padding: 6px 0;
   border-radius: 6px;
   transition: all 0.2s;
 }
@@ -258,6 +299,16 @@ const goHome = () => {
 .collapse-btn:hover {
   color: var(--menu-collapse-btn-hover-text);
   background-color: var(--menu-collapse-btn-hover-bg);
+}
+
+.collapse-icon-slot {
+  width: var(--sidebar-icon-slot-width);
+  flex: 0 0 var(--sidebar-icon-slot-width);
+}
+
+.collapse-text {
+  margin-left: 10px;
+  white-space: nowrap;
 }
 
 .fade-slide-enter-active,

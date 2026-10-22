@@ -16,6 +16,34 @@ from .audit import audit
 from .presenters import public_user
 
 
+def parse_device_info(ua: str) -> str:
+    if not ua:
+        return 'Web 客户端'
+    os_name = 'Unknown OS'
+    if 'Macintosh' in ua or 'Mac OS X' in ua:
+        os_name = 'macOS'
+    elif 'Windows' in ua:
+        os_name = 'Windows'
+    elif 'iPhone' in ua:
+        os_name = 'iOS'
+    elif 'Android' in ua:
+        os_name = 'Android'
+    elif 'Linux' in ua:
+        os_name = 'Linux'
+
+    browser_name = 'Browser'
+    if 'Chrome' in ua and 'Edg' not in ua:
+        browser_name = 'Chrome'
+    elif 'Safari' in ua and 'Chrome' not in ua:
+        browser_name = 'Safari'
+    elif 'Firefox' in ua:
+        browser_name = 'Firefox'
+    elif 'Edg' in ua:
+        browser_name = 'Edge'
+
+    return f'{browser_name} on {os_name}'
+
+
 @dataclass(frozen=True)
 class Principal:
     user: User
@@ -41,7 +69,7 @@ class AuthService:
             raise AppError(401, '账号或角色已停用，请重新登录')
         return Principal(user, role.permissions, digest)
 
-    async def login(self, db, config, ip, username, password):
+    async def login(self, db, config, ip, username, password, user_agent=''):
         now = utcnow()
         context = AuditContext(username, ip)
         bucket = await LoginRepository().bucket(db, token_digest(ip), now)
@@ -66,7 +94,12 @@ class AuthService:
             raise AppError(401, '账号或密码错误，或账号不可用')
         raw = secrets.token_urlsafe(48)
         self.sessions.add(
-            db, token_digest(raw), user.id, now + timedelta(hours=config.session_hours)
+            db,
+            token_digest(raw),
+            user.id,
+            now + timedelta(hours=config.session_hours),
+            ip=ip,
+            user_agent=user_agent,
         )
         audit(db, context, '登录成功', '登录', 'login')
         result = {'token': raw, 'user': await public_user(db, user)}
@@ -106,3 +139,25 @@ class AuthService:
         await self.sessions.revoke_user(db, principal.user.id)
         audit(db, context, '修改密码', principal.user.id)
         await db.commit()
+
+    async def list_sessions(self, db, principal):
+        now = utcnow()
+        sessions = await self.sessions.list_user_sessions(db, principal.user.id, now)
+        return [
+            {
+                'tokenHash': s.token_hash,
+                'device': parse_device_info(s.user_agent),
+                'ip': s.ip or '127.0.0.1',
+                'createdAt': (s.created_at or s.expires_at).isoformat(),
+                'expiresAt': s.expires_at.isoformat(),
+                'isCurrent': s.token_hash == principal.token_hash,
+            }
+            for s in sessions
+        ]
+
+    async def revoke_session(self, db, principal, context, token_hash):
+        target = await self.sessions.get(db, token_hash)
+        if target and target.user_id == principal.user.id:
+            await self.sessions.revoke(db, token_hash)
+            audit(db, context, '撤销登录会话', principal.user.id)
+            await db.commit()

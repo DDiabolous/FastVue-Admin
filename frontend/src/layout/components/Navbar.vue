@@ -2,12 +2,22 @@
   <header class="navbar-container">
     <!-- Left: Collapse & Breadcrumb -->
     <div class="navbar-left">
-      <el-button class="collapse-trigger-btn" text @click="appStore.toggleSidebar">
-        <el-icon :size="18">
-          <Fold v-if="!appStore.sidebarCollapsed" />
-          <Expand v-else />
-        </el-icon>
-      </el-button>
+      <el-tooltip
+        :content="appStore.sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'"
+        placement="bottom"
+      >
+        <el-button
+          class="collapse-trigger-btn"
+          text
+          :aria-label="appStore.sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'"
+          @click="appStore.toggleSidebar"
+        >
+          <el-icon :size="18">
+            <Fold v-if="!appStore.sidebarCollapsed" />
+            <Expand v-else />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
 
       <el-breadcrumb separator="/" class="breadcrumb">
         <el-breadcrumb-item :to="{ path: '/dashboard' }">首页</el-breadcrumb-item>
@@ -30,6 +40,22 @@
         <span>搜索页面</span>
         <kbd>{{ isMac ? '⌘ K' : 'Ctrl K' }}</kbd>
       </button>
+
+      <!-- Action Button: Refresh Page -->
+      <el-tooltip content="刷新当前页面" placement="bottom">
+        <button
+          class="action-item"
+          type="button"
+          aria-label="刷新当前页面"
+          :disabled="isRefreshing"
+          @click="handleRefresh"
+        >
+          <el-icon :size="18" :class="{ 'icon-spin': isRefreshing }">
+            <RefreshRight />
+          </el-icon>
+        </button>
+      </el-tooltip>
+
       <el-tooltip content="界面设置" placement="bottom">
         <button
           class="action-item"
@@ -70,25 +96,33 @@
       </el-tooltip>
 
       <!-- Action Button 3: Notification Center Popover with Badge -->
+      <el-tooltip content="通知中心" placement="bottom">
+        <div
+          ref="bellTriggerRef"
+          class="action-item"
+          aria-label="消息与告警通知"
+          role="button"
+          tabindex="0"
+        >
+          <el-badge
+            :value="appStore.unreadCount"
+            :max="99"
+            :hidden="appStore.unreadCount === 0"
+            class="badge-container"
+          >
+            <el-icon :size="18"><Bell /></el-icon>
+          </el-badge>
+        </div>
+      </el-tooltip>
+
       <el-popover
+        :virtual-ref="bellTriggerRef"
+        virtual-triggering
         placement="bottom-end"
         :width="360"
         trigger="click"
         popper-class="notification-popover"
       >
-        <template #reference>
-          <div class="action-item" aria-label="消息与告警通知">
-            <el-badge
-              :value="appStore.unreadCount"
-              :max="99"
-              :hidden="appStore.unreadCount === 0"
-              class="badge-container"
-            >
-              <el-icon :size="18"><Bell /></el-icon>
-            </el-badge>
-          </div>
-        </template>
-
         <div class="notification-box">
           <div class="notification-header">
             <span class="title">通知中心</span>
@@ -177,6 +211,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Fold,
   Expand,
+  RefreshRight,
   Moon,
   Sunny,
   FullScreen,
@@ -198,10 +233,23 @@ const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
 
+const bellTriggerRef = ref(null)
+
 const isMac = /Mac/i.test(navigator.platform)
 const currentRouteTitle = computed(() => route.meta?.title || '')
 
 const isFullscreen = ref(false)
+const isRefreshing = ref(false)
+
+const handleRefresh = async () => {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  try {
+    await appStore.reloadView()
+  } finally {
+    isRefreshing.value = false
+  }
+}
 
 const syncFullscreen = () => {
   isFullscreen.value = !!document.fullscreenElement

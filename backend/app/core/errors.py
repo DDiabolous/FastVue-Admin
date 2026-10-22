@@ -40,5 +40,16 @@ def register_exception_handlers(app):
 
     @app.exception_handler(Exception)
     async def unexpected(request, exc):
-        logging.getLogger('fastvue').error('Request failed (%s)', type(exc).__name__)
-        return error_response(500, '服务暂时不可用，请稍后重试')
+        request_id = getattr(request.state, 'request_id', 'unknown')
+        logging.getLogger('fastvue.error').error(
+            'Request failed [request_id=%s] %s %s (%s): %s',
+            request_id,
+            request.method,
+            request.url.path,
+            type(exc).__name__,
+            exc,
+            exc_info=True,
+        )
+        return error_response(
+            500, '服务暂时不可用，请稍后重试', headers={'X-Request-ID': request_id}
+        )

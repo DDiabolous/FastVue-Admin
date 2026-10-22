@@ -7,7 +7,24 @@ def fields(row, names):
 
 def user_data(user, role):
     return {
-        **fields(user, ['id', 'username', 'realName', 'email', 'role', 'status', 'createdAt']),
+        **fields(
+            user,
+            [
+                'id',
+                'username',
+                'realName',
+                'email',
+                'gender',
+                'phone',
+                'location',
+                'bio',
+                'avatar',
+                'coverImage',
+                'role',
+                'status',
+                'createdAt',
+            ],
+        ),
         'roleName': role.roleName if role else '未分配角色',
         'permissions': role.permissions if role and role.status == 1 else [],
     }

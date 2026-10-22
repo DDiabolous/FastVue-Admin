@@ -63,6 +63,116 @@ async def test_password_profile_and_all_sessions_revoked(client, admin):
     ).status_code == 200
     for headers in [admin, second]:
         assert (await client.get('/api/v1/auth/me', headers=headers)).status_code == 401
+
+
+async def test_personal_profile_details(client, admin):
+    me = (await client.get('/api/v1/auth/me', headers=admin)).json()['data']
+    assert me['gender'] == 'unspecified'
+    assert me['bio'] == ''
+    details = {
+        'gender': 'female',
+        'phone': '+86 13800138000',
+        'location': '上海',
+        'bio': '后端开发者\n喜欢摄影与开源。',
+    }
+    response = await client.patch('/api/v1/auth/profile', headers=admin, json=details)
+    assert response.status_code == 200
+    assert all(response.json()['data'][key] == value for key, value in details.items())
+    # Image auto-save must not reset any optional profile details.
+    await client.patch('/api/v1/auth/profile', headers=admin, json={'avatar': ''})
+    me = (await client.get('/api/v1/auth/me', headers=admin)).json()['data']
+    assert all(me[key] == value for key, value in details.items())
+    for invalid in [{'gender': 'invalid'}, {'bio': 'x' * 501}, {'phone': 'x' * 33}]:
+        response = await client.patch('/api/v1/auth/profile', headers=admin, json=invalid)
+        assert response.status_code == 422
+    reset = {'gender': 'unspecified', 'phone': '', 'location': '', 'bio': ''}
+    response = await client.patch('/api/v1/auth/profile', headers=admin, json=reset)
+    assert response.status_code == 200
+    assert all(response.json()['data'][key] == value for key, value in reset.items())
+
+
+async def test_profile_cover_persistence_and_reset(client, admin):
+    cover = 'data:image/webp;base64,dGVzdA=='
+    original = (await client.get('/api/v1/auth/me', headers=admin)).json()['data']
+    response = await client.patch('/api/v1/auth/profile', headers=admin, json={'coverImage': cover})
+    assert response.status_code == 200
+    assert response.json()['data']['realName'] == original['realName']
+    assert response.json()['data']['email'] == original['email']
+    avatar = 'data:image/png;base64,dGVzdA=='
+    response = await client.patch('/api/v1/auth/profile', headers=admin, json={'avatar': avatar})
+    assert response.status_code == 200
+    assert response.json()['data']['avatar'] == avatar
+    assert response.json()['data']['coverImage'] == cover
+    assert response.json()['data']['realName'] == original['realName']
+    assert response.json()['data']['email'] == original['email']
+    assert (
+        await client.patch('/api/v1/auth/profile', headers=admin, json={'realName': None})
+    ).status_code == 422
+    profile = {'realName': '管理员', 'email': 'admin@example.org', 'coverImage': cover}
+    response = await client.patch('/api/v1/auth/profile', headers=admin, json=profile)
+    assert response.status_code == 200
+    assert response.json()['data']['coverImage'] == cover
+    me = await client.get('/api/v1/auth/me', headers=admin)
+    assert me.json()['data']['coverImage'] == cover
+
+    # Older clients that omit the cover must preserve the saved image.
+    del profile['coverImage']
+    response = await client.patch('/api/v1/auth/profile', headers=admin, json=profile)
+    assert response.json()['data']['coverImage'] == cover
+
+    profile['coverImage'] = ''
+    response = await client.patch('/api/v1/auth/profile', headers=admin, json=profile)
+    assert response.json()['data']['coverImage'] == ''
+    me = await client.get('/api/v1/auth/me', headers=admin)
+    assert me.json()['data']['coverImage'] == ''
+
+
+async def test_session_management_and_avatar_persistence(client, admin):
+    # 1. Verify avatar persistence
+    avatar_data = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    update_res = await client.patch(
+        '/api/v1/auth/profile',
+        headers=admin,
+        json={'realName': '管理员测试', 'email': 'admin@test.local', 'avatar': avatar_data},
+    )
+    assert update_res.status_code == 200
+    assert update_res.json()['data']['avatar'] == avatar_data
+
+    # Re-fetch profile to ensure database persistence
+    me_res = await client.get('/api/v1/auth/me', headers=admin)
+    assert me_res.status_code == 200
+    assert me_res.json()['data']['avatar'] == avatar_data
+
+    # 2. Simulate another device login with iOS User-Agent
+    login_res = await client.post(
+        '/api/v1/auth/login',
+        json={'username': 'admin', 'password': 'AdminPass123!'},
+        headers={
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile Safari/604.1'
+        },
+    )
+    assert login_res.status_code == 200
+    second_token = login_res.json()['data']['token']
+    second_headers = {'Authorization': f'Bearer {second_token}'}
+
+    # Query active sessions
+    sessions_res = await client.get('/api/v1/auth/sessions', headers=admin)
+    assert sessions_res.status_code == 200
+    session_list = sessions_res.json()['data']
+    assert len(session_list) >= 2
+    second_session = next(s for s in session_list if not s['isCurrent'])
+    assert 'Safari on iOS' in second_session['device']
+    assert second_session['createdAt'] is not None
+
+    # Revoke the second session
+    revoke_res = await client.delete(
+        f'/api/v1/auth/sessions/{second_session["tokenHash"]}', headers=admin
+    )
+    assert revoke_res.status_code == 200
+
+    # Verify second session is revoked while current session remains active
+    assert (await client.get('/api/v1/auth/me', headers=second_headers)).status_code == 401
+    assert (await client.get('/api/v1/auth/me', headers=admin)).status_code == 200
     await sign_in(client, password='ChangedPass123!')
 
 

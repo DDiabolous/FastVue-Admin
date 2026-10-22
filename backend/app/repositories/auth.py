@@ -9,8 +9,23 @@ class SessionRepository:
     async def get(self, db, digest):
         return await db.get(Session, digest)
 
-    def add(self, db, digest, user_id, expires_at):
-        db.add(Session(token_hash=digest, user_id=user_id, expires_at=expires_at))
+    def add(self, db, digest, user_id, expires_at, ip='127.0.0.1', user_agent=''):
+        from app.db.base import utcnow
+
+        db.add(
+            Session(
+                token_hash=digest,
+                user_id=user_id,
+                expires_at=expires_at,
+                created_at=utcnow(),
+                ip=ip or '127.0.0.1',
+                user_agent=user_agent[:255] if user_agent else '',
+            )
+        )
+
+    async def list_user_sessions(self, db, user_id, now):
+        stmt = select(Session).where(Session.user_id == user_id, Session.expires_at > now)
+        return (await db.scalars(stmt)).all()
 
     async def revoke(self, db, digest):
         await db.execute(delete(Session).where(Session.token_hash == digest))

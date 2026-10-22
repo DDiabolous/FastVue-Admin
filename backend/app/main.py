@@ -1,4 +1,5 @@
 import logging
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -35,12 +36,22 @@ def create_app(config=None):
 
     app = FastAPI(title='FastVue-Admin API', version='1.0.0', lifespan=lifespan)
     app.state.config, app.state.engine, app.state.sessions = config, engine, sessions
+
+    @app.middleware('http')
+    async def request_id_middleware(request: Request, call_next):
+        request_id = request.headers.get('X-Request-ID') or uuid.uuid4().hex
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers['X-Request-ID'] = request_id
+        return response
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.cors_origins,
         allow_credentials=False,
         allow_methods=['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-        allow_headers=['Authorization', 'Content-Type'],
+        allow_headers=['Authorization', 'Content-Type', 'X-Request-ID'],
+        expose_headers=['X-Request-ID'],
     )
 
     register_exception_handlers(app)

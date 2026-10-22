@@ -47,10 +47,12 @@
 import { watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTagsViewStore } from '@/stores/tagsView'
+import { useAppStore } from '@/stores/app'
 
 const route = useRoute()
 const router = useRouter()
 const tagsViewStore = useTagsViewStore()
+const appStore = useAppStore()
 
 const isActive = (tag) => {
   return tag.path === route.path
@@ -76,10 +78,7 @@ const closeTag = (tag) => {
 
 const handleCommand = (cmd) => {
   if (cmd === 'refresh') {
-    router.replace({ path: '/redirect' + route.fullPath }).catch(() => {
-      // simple reload fallback
-      window.location.reload()
-    })
+    appStore.reloadView()
   } else if (cmd === 'closeOthers') {
     tagsViewStore.delOthersViews(route)
   } else if (cmd === 'closeAll') {

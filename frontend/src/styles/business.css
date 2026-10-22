@@ -192,18 +192,19 @@
 .business-pagination .page-total-text {
   display: none;
 }
-.starter-page.business-page .device-card-grid {
+.starter-page.business-page :is(.device-card-grid, .entity-card-grid) {
+  display: grid;
   gap: 18px;
   padding: 0;
 }
-.starter-page.business-page :is(.device-card-grid, .card-view-grid) {
+.starter-page.business-page :is(.device-card-grid, .card-view-grid, .entity-card-grid) {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
 }
-.starter-page.business-page :is(.device-tile-card, .device-grid-card) {
+.starter-page.business-page :is(.device-tile-card, .device-grid-card, .entity-card) {
   min-width: 0;
   height: 100%;
 }
-.starter-page.business-page :is(.device-tile-card, .device-grid-card) > .el-card__body {
+.starter-page.business-page :is(.device-tile-card, .device-grid-card, .entity-card) > .el-card__body {
   padding: 20px;
   height: 100%;
   box-sizing: border-box;
@@ -252,7 +253,33 @@
   overflow-wrap: anywhere;
 }
 .starter-page.business-page :is(.tile-footer, .grid-card-footer) {
-  flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+.starter-page.business-page :is(.tile-footer, .grid-card-footer).has-toggle {
+  justify-content: space-between;
+}
+.starter-page.business-page :is(.tile-footer, .grid-card-footer) .footer-left {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.starter-page.business-page :is(.tile-footer, .grid-card-footer) .footer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+}
+.starter-page.business-page :is(.tile-footer, .grid-card-footer) .el-button {
+  flex-shrink: 0;
 }
 .starter-page.business-page :is(.tile-footer, .grid-card-footer) .el-button + .el-button {
   margin-left: 0;
@@ -401,7 +428,7 @@
   .starter-page.business-page .table-tools .el-radio-group {
     margin-right: auto;
   }
-  .starter-page.business-page .device-card-grid {
+  .starter-page.business-page :is(.device-card-grid, .entity-card-grid) {
     grid-template-columns: minmax(0, 1fr);
   }
   .starter-page.business-page .business-statistic .el-card__body {

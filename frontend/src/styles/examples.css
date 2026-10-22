@@ -1,0 +1,53 @@
+/* Examples use the same layout, toolbar and overlay foundations as business modules. */
+.starter-page.example-page .el-card {
+  border-radius: var(--radius-panel);
+  box-shadow: none;
+}
+.starter-page.example-page .el-card__header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-light);
+}
+.starter-page.example-page .card-header {
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--text-main);
+}
+.starter-page.example-page .el-row {
+  row-gap: 20px;
+}
+.starter-page.example-page :is(.tree-card, .upload-card) {
+  height: 100%;
+  margin-bottom: 0;
+}
+.starter-page.example-page .project-form :is(h2, h3) {
+  font-size: 16px;
+  font-weight: 550;
+}
+.starter-page.example-page .project-form .el-form-item__label {
+  font-size: 13px;
+  color: var(--text-regular);
+}
+.starter-page.example-page .project-form .el-form-item {
+  margin-bottom: 24px;
+}
+.starter-page.example-page .el-steps--simple {
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+.starter-page.example-page .detail-toolbar {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+.starter-page.example-page .project-details .el-descriptions__label {
+  font-size: 13px;
+  font-weight: 500;
+}
+.starter-page.example-page .project-details .el-descriptions__content {
+  font-size: 13px;
+}
+@media (max-width: 767px) {
+  .starter-page.example-page .el-card__header {
+    padding: 16px 18px;
+  }
+}
