@@ -8,10 +8,7 @@
         <el-icon><Calendar /></el-icon>
         {{ date }}
       </span>
-      <el-button @click="helpVisible = true">
-        <el-icon><QuestionFilled /></el-icon>
-        项目帮助
-      </el-button>
+      <el-button @click="helpVisible = true">项目帮助</el-button>
     </template>
     <div class="starter-welcome">
       <div>

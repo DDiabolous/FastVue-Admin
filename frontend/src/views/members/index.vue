@@ -9,9 +9,9 @@
         {{ showStats ? '收起统计' : '展开统计' }}
       </el-button>
     </template>
-    <!-- Top KPI Stats Row (Collapsible & Compact) -->
-    <el-collapse-transition>
-      <div v-show="showStats" class="stats-collapse-wrap">
+    <!-- Top KPI Stats Row (Collapsible, uncoupled from heading & gaps) -->
+    <div class="stats-collapse-box" :class="{ 'is-collapsed': !showStats }">
+      <div class="stats-collapse-inner">
         <el-row :gutter="16" class="stats-row">
           <el-col :xs="12" :sm="12" :lg="6">
             <StatisticCard label="全平台用户总量" unit="人" tone="primary">
@@ -60,7 +60,7 @@
           </el-col>
         </el-row>
       </div>
-    </el-collapse-transition>
+    </div>
 
     <!-- Filter Card (Compact Single Row by Default) -->
 
@@ -132,16 +132,18 @@
           </el-form-item>
         </template>
 
-        <el-form-item class="form-btn-item">
-          <el-button type="primary" :icon="Search" native-type="submit">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button link type="primary" size="small" @click="showMoreFilter = !showMoreFilter">
-            {{ showMoreFilter ? '收起' : '展开' }}
-            <el-icon class="el-icon--right">
-              <component :is="showMoreFilter ? ArrowUp : ArrowDown" />
-            </el-icon>
-          </el-button>
-        </el-form-item>
+        <template #actions>
+          <el-form-item class="form-btn-item">
+            <el-button link type="primary" size="small" class="expand-btn" @click="showMoreFilter = !showMoreFilter">
+              {{ showMoreFilter ? '收起' : '展开' }}
+              <el-icon class="el-icon--right">
+                <component :is="showMoreFilter ? ArrowUp : ArrowDown" />
+              </el-icon>
+            </el-button>
+            <el-button type="primary" :icon="Search" native-type="submit">查询</el-button>
+            <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          </el-form-item>
+        </template>
       </FilterPanel>
       <TableToolbar
         :loading="tableLoading"
@@ -363,7 +365,7 @@
         </el-table-column>
 
         <!-- Operations Column (Streamlined to 3 clear actions, strictly in one horizontal row) -->
-        <el-table-column label="操作" width="215" fixed="right" align="center">
+        <el-table-column label="操作" width="194" fixed="right" align="center">
           <template #default="{ row }">
             <div class="table-op-btns">
               <el-button
@@ -379,10 +381,11 @@
                 编辑
               </el-button>
               <el-popconfirm
-                title="确定要删除该用户档案吗？此操作不可逆！"
-                confirm-button-text="确认删除"
+                title="确定删除该用户吗？"
+                confirm-button-text="删除"
                 cancel-button-text="取消"
                 confirm-button-type="danger"
+                width="auto"
                 @confirm="handleDeleteMemberRow(row)"
               >
                 <template #reference>
@@ -1182,9 +1185,9 @@ const handleMoreCommand = (cmd, row) => {
       .catch(() => {})
   } else if (cmd === 'delete_user') {
     ElMessageBox.confirm(
-      `确定要删除用户【${row.nickname}】的所有注册档案吗？此操作不可逆！`,
-      '删除警告',
-      { confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'error' },
+      `确定删除用户【${row.nickname}】吗？`,
+      '提示',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
     )
       .then(() => {
         allMembers.value = allMembers.value.filter((m) => m.id !== row.id)
@@ -1273,10 +1276,6 @@ const formDraft = useBusinessDraft(memberDialogVisible, memberFormData, submitLo
 </script>
 
 <style scoped>
-.stats-collapse-wrap {
-  width: 100%;
-}
-
 .stats-row {
   margin-bottom: 0px;
 }

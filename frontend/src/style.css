@@ -206,6 +206,7 @@ html.dark ::-webkit-scrollbar-thumb {
 .el-table {
   --el-table-header-bg-color: #f8fafc;
   --el-table-header-text-color: #475569;
+  --el-table-striped-bg-color: #f6f8fb;
   --el-table-row-hover-bg-color: #f1f5f9;
   border-radius: 10px;
   overflow: hidden;
@@ -229,11 +230,14 @@ html.dark .el-table {
   --el-table-text-color: #e2e8f0;
 }
 
-html.dark .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+html.dark .el-table--striped .el-table__body tr.el-table__row--striped:not(:hover):not(.hover-row):not(.current-row):not(:has(.el-checkbox.is-checked)) td.el-table__cell {
   background-color: #151e2e !important;
 }
 
-html.dark .el-table__body tr:hover > td.el-table__cell {
+html.dark .el-table__body tr:hover > td.el-table__cell:not(.el-table-fixed-column--right):not(.el-table-fixed-column--left),
+html.dark .el-table__body tr.hover-row > td.el-table__cell:not(.el-table-fixed-column--right):not(.el-table-fixed-column--left),
+html.dark .el-table__body tr.current-row > td.el-table__cell:not(.el-table-fixed-column--right):not(.el-table-fixed-column--left),
+html.dark .el-table__body tr:has(.el-checkbox.is-checked) > td.el-table__cell:not(.el-table-fixed-column--right):not(.el-table-fixed-column--left) {
   background-color: #1e293b !important;
 }
 
@@ -269,6 +273,10 @@ html.dark .el-dialog {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-main);
+}
+
+.el-dialog__body {
+  padding-top: 20px;
 }
 
 .el-dialog__footer {
@@ -988,7 +996,7 @@ html.dark .el-tag--danger {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 4px !important;
+  gap: 8px !important;
   white-space: nowrap !important;
   flex-wrap: nowrap !important;
 }

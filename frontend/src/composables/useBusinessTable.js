@@ -1,4 +1,4 @@
-import { computed, watch, unref } from 'vue'
+import { computed, watch, unref, onUnmounted } from 'vue'
 import { useTablePreferences } from './useTablePreferences'
 import { useUserStore } from '@/stores/user'
 import { readPreference, writePreference } from '@/utils/preferences'
@@ -31,6 +31,50 @@ export function useBusinessTable(name, columns, options) {
   }
   if (options.viewMode && ['table', 'card'].includes(saved.viewMode))
     options.viewMode.value = saved.viewMode
+  if (options.viewMode) {
+    // 切换视图模式（如网格卡片切回表格）时，由于表格组件多阶段渲染可能造成容器高度短暂塌陷，
+    // 导致浏览器原生将滚动条截断强制归零（跳回顶部）。此处在 DOM 更新前锁定页面最小高度并记录位置，
+    // 渲染完成后释放锁并保持滚动位置连续，避免跳顶。
+    let switchToken = 0
+    let activePageEl = null
+    watch(
+      () => unref(options.viewMode),
+      (newMode, oldMode) => {
+        if (!oldMode || newMode === oldMode) return
+        if (typeof document === 'undefined') return
+        const scrollEl = document.querySelector('.content-container')
+        if (!scrollEl) return
+        const prevScrollTop = scrollEl.scrollTop
+        const pageEl = scrollEl.firstElementChild
+        if (pageEl && prevScrollTop > 0) {
+          activePageEl = pageEl
+          const currentToken = ++switchToken
+          const prevHeight = pageEl.offsetHeight
+          pageEl.style.minHeight = `${prevHeight}px`
+          const restore = () => {
+            if (switchToken === currentToken) {
+              if (pageEl) pageEl.style.minHeight = ''
+              activePageEl = null
+            }
+            if (scrollEl && scrollEl.scrollTop !== prevScrollTop) {
+              scrollEl.scrollTop = prevScrollTop
+            }
+          }
+          if (typeof requestAnimationFrame !== 'undefined') {
+            requestAnimationFrame(() => {
+              requestAnimationFrame(restore)
+            })
+          } else {
+            setTimeout(restore, 50)
+          }
+        }
+      },
+      { flush: 'pre' },
+    )
+    onUnmounted(() => {
+      if (activePageEl) activePageEl.style.minHeight = ''
+    })
+  }
   for (const key of ['showStats', 'showMoreFilter'])
     if (options[key] && typeof saved[key] === 'boolean') options[key].value = saved[key]
   watch(

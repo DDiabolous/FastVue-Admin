@@ -1,0 +1,71 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: fastvue
+      POSTGRES_USER: fastvue
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in root .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fastvue -d fastvue"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: ./backend
+    command: ["alembic", "upgrade", "head"]
+    environment: &api_environment
+      DATABASE_URL: postgresql+asyncpg://fastvue:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/fastvue
+      CORS_ORIGINS: '[]'
+    networks: [backend]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  init:
+    profiles: [tools]
+    build: ./backend
+    command: ["python", "-m", "app.cli", "init"]
+    environment:
+      <<: *api_environment
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    networks: [backend]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    build: ./backend
+    # Only the trusted Compose network can reach this port; nginx replaces XFF.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    environment: *api_environment
+    networks: [backend]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  web:
+    build: ./frontend
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    networks: [default, backend]
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+networks:
+  backend:
+    internal: true

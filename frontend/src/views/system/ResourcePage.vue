@@ -52,7 +52,7 @@
         <el-table-column
           v-if="user.can(permission('update')) || user.can(permission('delete'))"
           label="操作"
-          width="150"
+          width="135"
           fixed="right"
         >
           <template #default="{ row }">
@@ -268,7 +268,8 @@ async function save() {
   }
   saving.value = true
   try {
-    const body = { ...form }
+    const writable = [...schema.fields.map((field) => field.prop), 'status']
+    const body = Object.fromEntries(writable.map((key) => [key, form[key]]))
     if (editingId.value && !body.password) delete body.password
     if (editingId.value) await api.update(editingId.value, body)
     else await api.create(body)

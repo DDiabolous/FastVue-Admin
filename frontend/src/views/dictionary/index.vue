@@ -44,7 +44,14 @@
               </div>
               <div class="type-actions" @click.stop>
                 <el-button link type="primary" :icon="Edit" size="small" @click="openEditTypeModal(item)" />
-                <el-popconfirm title="确定删除该字典类型吗？" @confirm="handleDeleteType(item)">
+                <el-popconfirm
+                  title="确定删除该字典类型吗？"
+                  confirm-button-text="删除"
+                  cancel-button-text="取消"
+                  confirm-button-type="danger"
+                  width="auto"
+                  @confirm="handleDeleteType(item)"
+                >
                   <template #reference>
                     <el-button link type="danger" :icon="Delete" size="small" />
                   </template>
@@ -126,13 +133,20 @@
               </template>
             </el-table-column>
 
-            <el-table-column label="操作" width="160" align="center">
+            <el-table-column label="操作" width="144" align="center">
               <template #default="{ row }">
                 <div class="table-op-btns">
                   <el-button link type="primary" size="small" :icon="Edit" @click="openEditDataModal(row)">
                     编辑
                   </el-button>
-                  <el-popconfirm title="确定删除该键值项吗？" @confirm="handleDeleteData(row)">
+                  <el-popconfirm
+                    title="确定删除该键值项吗？"
+                    confirm-button-text="删除"
+                    cancel-button-text="取消"
+                    confirm-button-type="danger"
+                    width="auto"
+                    @confirm="handleDeleteData(row)"
+                  >
                     <template #reference>
                       <el-button link type="danger" size="small" :icon="Delete">
                         删除

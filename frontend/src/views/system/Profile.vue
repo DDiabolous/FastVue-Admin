@@ -1,5 +1,5 @@
 <template>
-  <PageContainer title="个人中心" description="管理个人资料、界面偏好及登录密码。">
+  <PageContainer title="个人中心" description="管理个人资料及登录密码。">
     <el-card shadow="never">
       <el-tabs v-model="tab">
         <el-tab-pane label="个人资料" name="profile">
@@ -22,13 +22,6 @@
             </el-form-item>
             <el-form-item label="角色">
               <el-tag>{{ user.currentRoleName }}</el-tag>
-            </el-form-item>
-            <el-form-item label="界面主题">
-              <el-radio-group :model-value="app.theme" @update:model-value="app.setTheme">
-                <el-radio-button value="light">浅色</el-radio-button>
-                <el-radio-button value="dark">深色</el-radio-button>
-                <el-radio-button value="system">跟随系统</el-radio-button>
-              </el-radio-group>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" native-type="submit" :loading="saving">保存资料</el-button>
@@ -74,11 +67,9 @@ import { reactive, ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { useAppStore } from '@/stores/app'
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 import PageContainer from '@/components/admin/PageContainer.vue'
 const user = useUserStore(),
-  app = useAppStore(),
   router = useRouter(),
   route = useRoute()
 const tab = ref(route.query.tab === 'security' ? 'security' : 'profile'),

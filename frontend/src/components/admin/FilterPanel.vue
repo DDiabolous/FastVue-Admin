@@ -5,7 +5,12 @@
     class="filter-panel business-filter"
     @submit.prevent="$emit('search')"
   >
-    <slot />
+    <div class="filter-panel-left">
+      <slot />
+    </div>
+    <div v-if="$slots.actions" class="filter-panel-right">
+      <slot name="actions" />
+    </div>
   </el-form>
 </template>
 <script setup>

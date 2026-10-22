@@ -25,10 +25,12 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item class="form-btn-item">
-          <el-button type="primary" :icon="Search" native-type="submit">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-        </el-form-item>
+        <template #actions>
+          <el-form-item class="form-btn-item">
+            <el-button type="primary" :icon="Search" native-type="submit">查询</el-button>
+            <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          </el-form-item>
+        </template>
       </FilterPanel>
       <TableToolbar
         :loading="tableLoading"
@@ -49,8 +51,8 @@
       <!-- Tree Table -->
       <el-table
         border
+        ref="treeTableRef"
         @header-dragend="businessTable.resize"
-        v-if="refreshTable"
         v-loading="tableLoading"
         :data="filteredDepts"
         row-key="id"
@@ -61,7 +63,7 @@
         <el-table-column
           prop="deptName"
           label="部门名称"
-          min-width="260"
+          min-width="290"
           key="deptName"
           v-if="businessTable.isColumnVisible('deptName')"
           :width="businessTable.columnWidth('deptName', undefined)"
@@ -144,7 +146,7 @@
           :width="businessTable.columnWidth('createTime', 170)"
         />
 
-        <el-table-column label="操作" width="240" fixed="right" align="center">
+        <el-table-column label="操作" width="216" fixed="right" align="center">
           <template #default="{ row }">
             <div class="table-op-btns">
               <el-button
@@ -160,10 +162,11 @@
                 编辑
               </el-button>
               <el-popconfirm
-                title="确定要删除该部门吗？若存在子部门将一同移除！"
-                confirm-button-text="确认删除"
+                title="确定删除该部门吗？"
+                confirm-button-text="删除"
                 cancel-button-text="取消"
                 confirm-button-type="danger"
+                width="auto"
                 @confirm="handleDeleteDept(row)"
               >
                 <template #reference>
@@ -300,6 +303,7 @@ import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
 
+const treeTableRef = ref(null)
 const allDepts = ref([])
 const tableLoading = ref(false)
 const isExpandAll = ref(true)
@@ -322,12 +326,19 @@ onMounted(() => {
   loadDeptData()
 })
 
-const toggleExpandAll = () => {
-  refreshTable.value = false
-  isExpandAll.value = !isExpandAll.value
-  nextTick(() => {
-    refreshTable.value = true
+const toggleRowExpansionAll = (nodes, expanded) => {
+  if (!treeTableRef.value || !nodes) return
+  nodes.forEach((node) => {
+    treeTableRef.value.toggleRowExpansion(node, expanded)
+    if (node.children && node.children.length > 0) {
+      toggleRowExpansionAll(node.children, expanded)
+    }
   })
+}
+
+const toggleExpandAll = () => {
+  isExpandAll.value = !isExpandAll.value
+  toggleRowExpansionAll(filteredDepts.value, isExpandAll.value)
 }
 
 const filterDeptTree = (list) => {
@@ -569,22 +580,225 @@ const formDraft = useBusinessDraft(deptDialogVisible, deptFormData, submitLoadin
 </script>
 
 <style scoped>
-.dept-name-cell {
-  display: flex;
+.business-departments {
+  --tree-line-color: #cbd5e1;
+  --tree-expand-bg: rgba(0, 0, 0, 0.04);
+  --tree-expand-border: rgba(0, 0, 0, 0.06);
+}
+
+:global(html.dark .business-departments) {
+  --tree-line-color: #334155;
+  --tree-expand-bg: rgba(255, 255, 255, 0.08);
+  --tree-expand-border: rgba(255, 255, 255, 0.12);
+}
+
+/* 树形表格首列 flex 居中单行对齐，彻底消除换行与多余高度 */
+:deep(.el-table .el-table__body td:first-child .cell) {
+  display: flex !important;
+  align-items: center !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+  position: relative;
+}
+
+/* 缩进容器 */
+:deep(.el-table__indent) {
+  display: inline-flex !important;
   align-items: center;
+  position: relative;
+  flex-shrink: 0;
+  order: 1;
+  height: 100%;
+}
+
+/* 阶梯缩进 */
+:deep(tr.el-table__row--level-1 .el-table__indent) {
+  padding-left: 24px !important;
+}
+:deep(tr.el-table__row--level-2 .el-table__indent) {
+  padding-left: 48px !important;
+}
+
+/* Level 1 树形连接分支线（L-shape 折线） */
+:deep(tr.el-table__row--level-1 .el-table__indent::before) {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: -24px;
+  bottom: 50%;
+  width: 1px;
+  border-left: 1.5px dashed var(--tree-line-color);
+}
+:deep(tr.el-table__row--level-1 .el-table__indent::after) {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 12px;
+  height: 1px;
+  border-bottom: 1.5px dashed var(--tree-line-color);
+}
+
+/* Level 2 树形连接线（祖父级垂直贯通虚线 + 本级分支折线） */
+:deep(tr.el-table__row--level-2 .el-table__indent) {
+  background-image: linear-gradient(to bottom, var(--tree-line-color) 50%, transparent 50%);
+  background-size: 1.5px 6px;
+  background-repeat: repeat-y;
+  background-position: 10px 0;
+}
+:deep(tr.el-table__row--level-2 .el-table__indent::before) {
+  content: '';
+  position: absolute;
+  left: 34px;
+  top: -24px;
+  bottom: 50%;
+  width: 1px;
+  border-left: 1.5px dashed var(--tree-line-color);
+}
+:deep(tr.el-table__row--level-2 .el-table__indent::after) {
+  content: '';
+  position: absolute;
+  left: 34px;
+  top: 50%;
+  width: 12px;
+  height: 1px;
+  border-bottom: 1.5px dashed var(--tree-line-color);
+}
+
+/* 将 dept-name-cell 内部子元素解包至外部 flex 流参与 order 排序 */
+.dept-name-cell {
+  display: contents !important;
+}
+
+.dept-name-cell :deep(.el-icon),
+.dept-name-cell > .el-icon {
+  order: 2 !important;
+  margin-right: 7px !important;
+  flex-shrink: 0;
 }
 
 .dept-title-text {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-main);
-  margin-right: 8px;
+  order: 3 !important;
+  margin-right: 6px !important;
+  flex-shrink: 0;
+}
+
+/* 树形子行展开平滑淡入滑下动画（避免收起时 table-row 重排撕裂闪烁） */
+@keyframes treeRowEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+:deep(tr.el-table__row--level-1:not([style*="display: none"])),
+:deep(tr.el-table__row--level-2:not([style*="display: none"])) {
+  animation: treeRowEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 展开箭头紧随部门名称标题右侧 */
+:deep(.el-table__expand-icon) {
+  order: 4 !important;
+  margin: 0 8px 0 0 !important;
+  padding: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--text-muted, #94a3b8);
+  background: var(--tree-expand-bg);
+  border: 1px solid var(--tree-expand-border);
+  cursor: pointer;
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease !important;
+}
+:deep(.el-table__expand-icon--expanded) {
+  transform: rotate(90deg) !important;
+}
+:deep(.el-table__expand-icon:hover) {
+  color: var(--primary-color, #2563eb);
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.25);
+}
+:deep(.el-table__expand-icon .el-icon) {
+  font-size: 11px !important;
+}
+
+/* 无子级占位符隐藏，不占用标题右侧空间 */
+:deep(.el-table__placeholder) {
+  display: none !important;
 }
 
 .dept-code-tag {
+  order: 5 !important;
   font-size: 10px;
   height: 20px;
   line-height: 18px;
+  flex-shrink: 0;
+}
+
+/* 层级差异化字体与图标 */
+:deep(tr.el-table__row--level-0 .dept-title-text) {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: var(--text-main) !important;
+}
+:deep(tr.el-table__row--level-0 .dept-name-cell .el-icon) {
+  font-size: 16px;
+  color: var(--primary-color) !important;
+}
+
+:deep(tr.el-table__row--level-1 .dept-title-text) {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--text-main) !important;
+}
+:deep(tr.el-table__row--level-1 .dept-name-cell .el-icon) {
+  font-size: 14.5px;
+  color: #0284c7 !important;
+}
+
+:deep(tr.el-table__row--level-2 .dept-title-text) {
+  font-size: 12.5px !important;
+  font-weight: 450 !important;
+  color: var(--text-regular) !important;
+}
+:deep(tr.el-table__row--level-2 .dept-name-cell .el-icon) {
+  font-size: 13.5px;
+  color: #64748b !important;
+}
+
+:global(html.dark .business-departments tr.el-table__row--level-0 .dept-title-text) {
+  color: #f1f5f9 !important;
+}
+:global(html.dark .business-departments tr.el-table__row--level-0 .dept-name-cell .el-icon) {
+  color: #60a5fa !important;
+}
+:global(html.dark .business-departments tr.el-table__row--level-1 .dept-title-text) {
+  color: #e2e8f0 !important;
+}
+:global(html.dark .business-departments tr.el-table__row--level-1 .dept-name-cell .el-icon) {
+  color: #38bdf8 !important;
+}
+:global(html.dark .business-departments tr.el-table__row--level-2 .dept-title-text) {
+  color: #94a3b8 !important;
+}
+:global(html.dark .business-departments tr.el-table__row--level-2 .dept-name-cell .el-icon) {
+  color: #64748b !important;
+}
+:global(html.dark .business-departments .el-table__expand-icon:hover) {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.15);
+  border-color: rgba(96, 165, 250, 0.3);
 }
 
 .font-medium {

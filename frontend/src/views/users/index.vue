@@ -156,7 +156,7 @@
         </el-table-column>
 
         <!-- Operations Column (Streamlined to 3 clear actions, strictly in one horizontal row) -->
-        <el-table-column label="操作" width="215" fixed="right" align="center">
+        <el-table-column label="操作" width="194" fixed="right" align="center">
           <template #default="{ row }">
             <div class="table-op-btns">
               <el-button link type="primary" size="small" :icon="Stamp" @click="openRoleModal(row)">
@@ -166,10 +166,11 @@
                 编辑
               </el-button>
               <el-popconfirm
-                title="确定要彻底删除该账号吗？此操作不可撤回！"
-                confirm-button-text="确认删除"
+                title="确定删除该用户吗？"
+                confirm-button-text="删除"
                 cancel-button-text="取消"
                 confirm-button-type="danger"
+                width="auto"
                 @confirm="handleDeleteUser(row)"
               >
                 <template #reference>

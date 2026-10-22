@@ -5,18 +5,22 @@
       <span v-if="selected" class="selection-chip">已选 {{ selected }} 项</span>
     </div>
     <div class="table-tools">
-      <slot name="tools" />
       <span v-if="total !== undefined" class="table-count">
         共
         <strong>{{ total }}</strong>
         条
       </span>
+      <slot name="tools" />
       <el-tooltip content="刷新数据">
-        <el-button :loading="loading" circle aria-label="刷新" @click="$emit('refresh')">
-          <el-icon><Refresh /></el-icon>
-        </el-button>
+        <el-button
+          :loading="loading"
+          :icon="Refresh"
+          circle
+          aria-label="刷新"
+          @click="$emit('refresh')"
+        />
       </el-tooltip>
-      <el-popover placement="bottom-end" width="220" trigger="click">
+      <el-popover placement="bottom-end" :width="160" trigger="click">
         <template #reference>
           <el-button circle aria-label="表格密度">
             <el-icon><Operation /></el-icon>
@@ -24,6 +28,7 @@
         </template>
         <div class="popover-heading">表格密度</div>
         <el-radio-group
+          class="density-radio-group"
           :model-value="app.density"
           @update:model-value="(value) => app.updateAppearance({ density: value })"
         >
@@ -59,6 +64,7 @@
   </div>
 </template>
 <script setup>
+import { Refresh } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
 const app = useAppStore()
 const props = defineProps({

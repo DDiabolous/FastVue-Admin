@@ -4,8 +4,8 @@
 Thumbs.db
 Desktop.ini
 
-# Backend is kept locally until it is ready to publish
-/backend/
+# Local backend planning notes (implementation is tracked)
+/backend/PROMPT.MD
 
 # Local editor settings
 .idea/

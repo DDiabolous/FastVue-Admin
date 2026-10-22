@@ -45,7 +45,7 @@
 
 ## 接入后端
 
-设置 `VITE_USE_MOCK=false` 和 `VITE_API_BASE_URL`，重启开发服务。默认 API 使用原生 fetch；接口方法位于 `src/api/system.js`，请求处理位于 `src/api/request.js`。
+先按 [后端说明](../backend/README.md) 启动 PostgreSQL、执行迁移并初始化管理员。设置 `VITE_USE_MOCK=false` 和 `VITE_API_BASE_URL=/api/v1`，重启开发服务。Vite 已配置 `/api` 转发到 `http://127.0.0.1:8000`。默认 API 使用原生 fetch；接口方法位于 `src/api/system.js`，请求处理位于 `src/api/request.js`。
 
 真实请求按 `{ code: 200, message, data }` 解包。HTTP 或业务 401 会清理会话并返回登录；403 保留登录并展示操作错误。受保护路由初始化会通过 `/auth/me` 获取资料和权限。网络失败保留登录状态，显示错误，用户可重试。
 
@@ -59,7 +59,7 @@
 
 默认演示数据库位于 `${VITE_STORAGE_PREFIX}:demo-v1`。清除该项可以重新生成初始用户和字典；同时清除 `${VITE_STORAGE_PREFIX}:token` 可退出旧会话。
 
-内置 admin 用户与角色受保护，个人资料和密码在个人中心修改。编辑用户可维护用户和字典，不能分配超出自身权限的角色。只读用户无法新增、编辑和删除。权限与角色状态修改后会影响 Mock API 的后续请求；真实后端须执行等价或更严格的校验。
+内置 admin 用户与角色受保护，个人资料和密码在个人中心修改。编辑用户可维护用户和字典，不能分配超出自身权限的角色。只读用户无法新增、编辑和删除。权限与角色状态修改后会影响 Mock API 的后续请求；核心后端在每次请求执行对应校验，使用数据库会话与服务端审计。
 
 旧页面 `views/users/index.vue`、`roles/index.vue`、`dictionary/index.vue`、`settings/index.vue`、`profile/index.vue` 已由 `views/system/` 替代且未注册路由，仅保留原始实现供迁移参考。新增功能应放在新目录，不再扩展旧页面。
 
@@ -103,4 +103,13 @@ npm run build:full
 
 业务页面公共样式放在 `src/styles/business.css`，品牌色使用外观变量，在线、预警、离线等状态保留语义色；终端区域保留适合日志阅读的深色背景。弹窗和抽屉宽度适应小屏幕，表单字段在手机上切换为单列。
 
-本轮只统一前端 UI 与交互，业务示例继续使用原有浏览器 Mock 数据，未增加后端实现。统计卡片中的演示指标不代表真实业务监控。
+full 业务示例继续使用原有浏览器 Mock 数据，未接入核心后端。统计卡片中的演示指标不代表真实业务监控。
+
+
+## 后端模块与接口版本
+
+核心后端按 `api → services → repositories → models` 分工，配置、异常、安全与启动检查在 `core/`，连接池与 ORM 基类在 `db/`。新增业务时分别添加模型、Schema、Repository、Service、v1 路由及迁移，在 `app/api/v1/router.py` 注册新路由。已有核心 CRUD 可参考用户或字典模块。
+
+Service 负责业务校验与事务提交，Repository 负责查询及持久化，不在 HTTP 路由中写 SQL。业务错误使用 `AppError`，成功写操作与审计日志在同一事务中提交。新增 API 版本时在 `app/api/router.py` 并行挂载版本路由，保留已发布版本的输入输出契约；API 版本与数据库迁移版本独立管理。
+
+当前业务 Base URL 为 `/api/v1`，健康检查仍为 `/api/health`。已有 `.env.local` 若覆盖为 `/api`，需要同步修改并重启 Vite。Mock 调用继续使用 `/auth/login` 等相对资源路径，其行为不受 HTTP 版本前缀影响。

@@ -135,7 +135,7 @@
         <el-table-column prop="createTime" label="创建时间" width="170" />
 
         <!-- Operations Column (Streamlined to 3 clear actions, strictly in one horizontal row) -->
-        <el-table-column label="操作" width="215" fixed="right" align="center">
+        <el-table-column label="操作" width="194" fixed="right" align="center">
           <template #default="{ row }">
             <div class="table-op-btns">
               <el-button link type="primary" size="small" :icon="Menu" @click="openPermissionDrawer(row)">
@@ -145,10 +145,11 @@
                 编辑
               </el-button>
               <el-popconfirm
-                title="确定要删除该权限项吗？"
-                confirm-button-text="确认"
+                title="确定删除该角色吗？"
+                confirm-button-text="删除"
                 cancel-button-text="取消"
                 confirm-button-type="danger"
+                width="auto"
                 @confirm="handleDeleteRole(row)"
               >
                 <template #reference>

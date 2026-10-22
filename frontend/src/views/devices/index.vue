@@ -52,10 +52,12 @@
           />
         </el-form-item>
 
-        <el-form-item class="form-btn-item">
-          <el-button type="primary" :icon="Search" native-type="submit">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-        </el-form-item>
+        <template #actions>
+          <el-form-item class="form-btn-item">
+            <el-button type="primary" :icon="Search" native-type="submit">查询</el-button>
+            <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          </el-form-item>
+        </template>
       </FilterPanel>
       <TableToolbar
         :loading="tableLoading"
@@ -91,9 +93,17 @@
         <el-button :icon="Download" @click="handleExportDevices">导出</el-button>
         <el-button v-if="selectedRows.length" link @click="clearSelection">清空已选</el-button>
         <template #tools>
-          <el-radio-group v-model="viewMode" size="small">
-            <el-radio-button value="table">列表</el-radio-button>
-            <el-radio-button value="card">卡片</el-radio-button>
+          <el-radio-group v-model="viewMode" class="view-mode-group">
+            <el-tooltip content="列表视图" placement="top">
+              <el-radio-button value="table" aria-label="列表视图">
+                <el-icon :size="15"><List /></el-icon>
+              </el-radio-button>
+            </el-tooltip>
+            <el-tooltip content="卡片视图" placement="top">
+              <el-radio-button value="card" aria-label="卡片视图">
+                <el-icon :size="15"><Grid /></el-icon>
+              </el-radio-button>
+            </el-tooltip>
           </el-radio-group>
         </template>
       </TableToolbar>
@@ -237,7 +247,7 @@
         </el-table-column>
 
         <!-- Operation Action Buttons (Streamlined to 3 clear actions, strictly in one horizontal row) -->
-        <el-table-column label="操作" width="215" fixed="right" align="center">
+        <el-table-column label="操作" width="194" fixed="right" align="center">
           <template #default="{ row }">
             <div class="table-op-btns">
               <el-button
@@ -253,10 +263,11 @@
                 编辑
               </el-button>
               <el-popconfirm
-                title="确定要移除此项资产资源吗？"
+                title="确定删除该资产吗？"
                 confirm-button-text="删除"
                 cancel-button-text="取消"
                 confirm-button-type="danger"
+                width="auto"
                 @confirm="handleDeleteDevice(row)"
               >
                 <template #reference>
@@ -689,6 +700,8 @@ import {
   DataBoard,
   Operation,
   InfoFilled,
+  List,
+  Grid,
 } from '@element-plus/icons-vue'
 import { getStoredDevices, saveStoredDevices, addAuditLog } from '@/utils/mockData'
 import { useUserStore } from '@/stores/user'

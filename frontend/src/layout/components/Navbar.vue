@@ -77,7 +77,7 @@
         popper-class="notification-popover"
       >
         <template #reference>
-          <div class="action-item" title="消息与告警通知">
+          <div class="action-item" aria-label="消息与告警通知">
             <el-badge
               :value="appStore.unreadCount"
               :max="99"
@@ -147,11 +147,7 @@
 
         <template #dropdown>
           <el-dropdown-menu>
-            <div class="dropdown-header">
-              <p class="role-desc">当前登录角色</p>
-              <el-tag size="small" type="primary">{{ userStore.currentRoleName }}</el-tag>
-            </div>
-            <el-dropdown-item divided command="profile">
+            <el-dropdown-item command="profile">
               <el-icon><User /></el-icon>
               个人中心
             </el-dropdown-item>
@@ -395,17 +391,6 @@ html.dark .action-item:hover {
 .arrow-icon {
   font-size: 12px;
   color: #94a3b8;
-}
-
-.dropdown-header {
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.role-desc {
-  font-size: 11px;
-  color: #94a3b8;
-  margin-bottom: 4px;
 }
 
 .notification-box {
