@@ -32,6 +32,36 @@
 - **📱 移动端自适应 (Mobile)**：侧边栏抽屉折叠、移动端卡片自适应缩放与触控友好交互。
 *(可在本地启动后点击右上角主题切换按钮，或在浏览器开发者工具中开启移动设备仿真进行体验)*
 
+以下截图来自 **Full 模式的本地 Mock 环境**，内容均为演示数据。截图文件保存在仓库内，点击可查看原图。
+
+### 工作台
+
+![工作台：统计卡片、业务趋势与分类分布](docs/images/dashboard-light.png)
+
+### 用户管理与项目卡片
+
+<table>
+  <tr>
+    <th width="50%">用户管理</th>
+    <th width="50%">项目卡片视图</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/user-management.png" alt="用户管理：账号、角色、状态与表格工具栏" /></td>
+    <td><img src="docs/images/project-cards.png" alt="基础列表的卡片视图：多条件筛选、进度与项目操作" /></td>
+  </tr>
+</table>
+
+### 暗色模式
+
+![暗色模式下的设备管理示例：统计、筛选与设备台账](docs/images/equipment-dark.png)
+
+<details>
+  <summary>📱 移动端预览（展开查看）</summary>
+  <p align="center">
+    <img src="docs/images/project-mobile.png" width="320" alt="移动端项目卡片：折叠导航、自适应筛选与单列卡片" />
+  </p>
+</details>
+
 ---
 
 ## ⚡ Starter vs Full 模式差异
