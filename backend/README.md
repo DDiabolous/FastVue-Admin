@@ -145,12 +145,16 @@ API 每次启动都会在接收请求前检查 PostgreSQL 连接、Alembic 迁�
 uv sync --locked
 # 使用专用测试数据库，不要填写生产数据库
 export TEST_DATABASE_URL='postgresql+asyncpg://fastvue:your-password@127.0.0.1:5432/fastvue_test'
+# 先启动专用 Redis 测试实例；认证测试需要真实 Redis
+export USER_AUTH_TEST_REDIS_URL='redis://127.0.0.1:6379/15'
 uv run --locked pytest
 uv run --locked ruff check app tests alembic
 uv run --locked alembic check
 ```
 
 测试在指定数据库中创建随机 schema，执行真实 Alembic 迁移和初始化，结束后删除测试 schema，不清空 public 数据。测试账号需有该数据库的 CREATE 权限；未配置 `TEST_DATABASE_URL` 时数据库测试跳过。`uv run --locked alembic check` 使用正常 `DATABASE_URL` 检查模型与已迁移数据库是否一致。
+
+App 认证集成测试同时依赖 PostgreSQL 和 Redis。`USER_AUTH_TEST_REDIS_URL` 默认连接 `redis://localhost:6379/15`，请指向专用测试实例；每个测试使用随机键前缀，结束后仅删除该前缀的键。CI 会自动启动 PostgreSQL 和 Redis，并等待健康检查通过后运行测试。
 
 ## 目录与扩展
 
