@@ -1,6 +1,6 @@
 # FastVue-Admin 后端
 
-FastAPI + SQLAlchemy 2 异步 ORM + PostgreSQL 的通用后台核心。业务接口挂载在 `/api/v1`，与现有系统页面使用同一契约。Python 3.12+，默认并仅验证 PostgreSQL（本地验证版本 17）。
+FastAPI + SQLAlchemy 2 异步 ORM + PostgreSQL 的通用后台核心，产品用户认证使用 Redis 管理验证码与设备会话。业务接口挂载在 `/api/v1`，与现有系统页面使用同一契约。Python 3.12+，默认并仅验证 PostgreSQL（本地验证版本 17）。
 
 ## 常用命令
 
@@ -33,7 +33,7 @@ FastAPI + SQLAlchemy 2 异步 ORM + PostgreSQL 的通用后台核心。业务接
 
 ## 本地启动
 
-先准备 PostgreSQL 数据库和独立用户。可使用本机 PostgreSQL，在 `psql` 中创建：
+先准备 PostgreSQL 数据库和独立用户；产品用户认证还需可用的 Redis。可使用本机 PostgreSQL，在 `psql` 中创建：
 
 ```sql
 CREATE ROLE fastvue LOGIN;
@@ -47,6 +47,7 @@ CREATE DATABASE fastvue OWNER fastvue;
 cd backend
 cp .env.example .env
 # 编辑 .env 中的 DATABASE_URL，填入实际数据库账号与密码
+# 产品认证同时配置 REDIS_URL、USER_JWT_SECRET；短信模拟默认关闭
 uv run --locked manage.py setup
 uv run --locked manage.py dev
 ```
@@ -87,12 +88,12 @@ uv run --locked --no-dev manage.py serve
 
 ## Docker Compose
 
-项目根目录提供 PostgreSQL、一次性迁移、初始化、API 和 Nginx 前端服务。后端镜像内使用固定版本 uv 和 `uv sync --locked --no-dev` 创建运行环境，再通过 `.venv/bin` 中的命令启动；无需在宿主机额外安装 Python：
+项目根目录提供 PostgreSQL、Redis、一次性迁移、初始化、API 和 Nginx 前端服务。后端镜像内使用固定版本 uv 和 `uv sync --locked --no-dev` 创建运行环境，再通过 `.venv/bin` 中的命令启动；无需在宿主机额外安装 Python：
 
 ```bash
 cp .env.example .env
-# 编辑 .env，替换 POSTGRES_PASSWORD
-docker compose run --build --rm init
+# 编辑 .env，替换 POSTGRES_PASSWORD 并设置独立的 USER_JWT_SECRET
+docker compose --profile tools run --build --rm init
 docker compose up --build -d web
 ```
 
@@ -112,7 +113,7 @@ API 每次启动都会在接收请求前检查 PostgreSQL 连接、Alembic 迁�
 
 ## 模块与安全行为
 
-- 认证：Argon2id 密码哈希；高熵随机 Bearer Token；数据库只保存 Token 的 SHA-256 摘要，默认 8 小时过期。
+- 后台认证：Argon2id 密码哈希；高熵随机 Bearer Token；数据库只保存 Token 的 SHA-256 摘要，默认 8 小时过期。
 - 会话撤销：退出注销当前会话；修改/重置密码、禁用账号、切换角色撤销该用户全部会话；禁用角色撤销绑定用户会话。重新启用不会恢复旧 Token。
 - 权限：每次请求读取当前账号及角色，逐接口校验；角色权限修改在下一请求生效。前端已缓存的菜单权限在重新获取 `/admin/me` 后更新。
 - 授权范围：角色授权不得超过操作者已有权限，禁止维护权限更高的角色或用户，不能通过创建用户或角色获得 `*`。
@@ -120,7 +121,7 @@ API 每次启动都会在接收请求前检查 PostgreSQL 连接、Alembic 迁�
 - 数据完整性：账号、角色标识、字典类型与值的唯一性受数据库约束；被引用角色不可删除或改标识。
 - 登录限流：基于数据库、按真实来源 IP 计数，默认每 900 秒最多 10 次登录尝试，多个进程共享；达到限制返回 429 和 `Retry-After`。成功尝试也计入窗口。
 - 审计：服务端记录登录成功、失败、限流、退出及系统写操作。写操作与成功审计同事务提交；不保存密码、请求体或 Token，不提供清空日志接口。
-- 配置：`/admin/settings/public` 仅公开应用名称与介绍，其余配置由后台权限控制。`registration` 表示备案信息，不是开放注册开关；本版不提供公开注册。
+- 配置：`/api/v1/admin/settings/public` 仅公开应用名称与介绍，其余配置由后台权限控制。`registration` 表示备案信息，不是开放注册开关；后台账号不开放自助注册，产品用户通过 `/api/v1/app/auth/register` 注册。
 - 事务：使用 PostgreSQL 事务级 advisory lock 协调授权读取和写操作，避免权限校验与修改之间的竞态。当前核心写请求串行，适合管理后台；扩展高吞吐业务时应拆分锁范围并补充并发测试。
 
 时间统一以 UTC ISO 8601 输出，列表按创建时间倒序及 ID 稳定排序；字典优先按 `sort` 升序。分页参数非法返回 422，唯一约束或引用冲突返回 409。数据库异常回滚，对外不暴露 SQL 或连接信息。
@@ -131,11 +132,19 @@ API 每次启动都会在接收请求前检查 PostgreSQL 连接、Alembic 迁�
 
 | 变量 | 默认值 | 含义 |
 | --- | --- | --- |
-| `DATABASE_URL` | `postgresql+asyncpg://fastvue:change-me@127.0.0.1:5432/fastvue` | PostgreSQL 连接，部署前替换 |
-| `CORS_ORIGINS` | 本机 5173 两个来源 | JSON 数组，只允许显式来源；同源部署可设 `[]` |
+| `DATABASE_URL` | 无，必填 | 显式配置 `postgresql+asyncpg://` 连接，缺失或无效时阻止启动 |
+| `CORS_ORIGINS` | localhost / 127.0.0.1 的 5173、63342 来源 | JSON 数组，只允许显式来源；同源部署可设 `[]` |
 | `SESSION_HOURS` | `8` | 会话有效小时数 |
 | `LOGIN_LIMIT` | `10` | 每来源 IP 窗口内登录尝试上限 |
 | `LOGIN_WINDOW_SECONDS` | `900` | 登录限流窗口秒数 |
+| `ENVIRONMENT` | `development` | 生产部署设为 `production` |
+| `REDIS_URL` | `redis://127.0.0.1:6379/0` | 产品认证的验证码、限流和设备会话存储 |
+| `USER_JWT_SECRET` | 无 | 产品认证独立随机签名密钥，至少 32 字节 |
+| `USER_JWT_ISSUER` | `ws-fastvue-user` | 产品访问令牌 issuer |
+| `USER_REFRESH_TOKEN_DAYS` | `7` | 刷新令牌有效天数，允许 7–30 天 |
+| `USER_AUTH_REDIS_PREFIX` | `fastvue:user:auth` | 产品认证 Redis 命名空间 |
+| `USER_SMS_MOCK_ENABLED` | `false` | 仅本地联调可开启；生产环境开启会拒绝启动 |
+| `SMS_GATEWAY_URL` / `SMS_GATEWAY_TOKEN` | 无 | 真实短信网关地址和鉴权令牌 |
 
 生产环境可定期执行 `uv run --locked --no-dev python -m app.cli cleanup` 清理过期会话和限流记录；不会删除审计日志。新增模型后使用 `uv run --locked alembic revision --autogenerate -m "..."` 生成迁移，人工复核后执行 `uv run --locked alembic upgrade head`。
 
@@ -195,6 +204,8 @@ app/
   repositories/base.py        通用 Repository 基类
   cli.py                      初始化和过期数据清理命令
 alembic/                      数据库版本迁移
+tools/app-auth-tester.html    产品认证 HTML 联调测试台
+docs/app-auth.md              产品认证部署与接口契约
 tests/                        PostgreSQL 与 API 契约测试
 pyproject.toml                项目依赖与开发依赖组
 uv.lock                       uv 依赖锁文件
@@ -217,4 +228,26 @@ API 路由仅处理参数、依赖和响应，具体业务由对应 Service 执�
 
 ## 注册用户认证
 
-独立的 `/api/v1/app` 认证接口已迁入，使用 `app_accounts` 表，不授予后台角色，不改动管理页面。部署、命名和数据迁移见 [用户认证文档](docs/app-auth.md)。
+产品用户使用 `/api/v1/app/auth/*` 注册、登录、刷新、重置密码和注销，通过 `GET /api/v1/app/me` 查询资料及会员状态。账号存储于 `app_accounts`，与后台账号、角色和令牌独立；后台账号没有自助注册接口。
+
+产品端访问令牌固定 15 分钟，刷新令牌轮换，Redis 不可用时返回 503；配置签名密钥后才可使用产品认证。生成密钥：
+
+```bash
+uv run --locked python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+将输出填入 `backend/.env` 的 `USER_JWT_SECRET`，配置 Redis 和真实短信网关后重启后端。本地需要短信模拟时，显式设置 `USER_SMS_MOCK_ENABLED=true`；生产环境禁止开启。完整契约见 [产品用户认证文档](docs/app-auth.md)。
+
+### HTML 联调测试台
+
+保留 [tools/app-auth-tester.html](tools/app-auth-tester.html)。在后端已启动的情况下，另开终端，在 `backend/` 目录运行：
+
+```bash
+python3 -m http.server 5173 --directory tools
+```
+
+打开 [联调测试台](http://localhost:5173/app-auth-tester.html)，后端地址填写 `http://localhost:8001`，工具自动附加 `/api/v1/app`。也可使用 IDE 63342 端口预览，默认 CORS 已放行 `localhost`、`127.0.0.1` 的 5173 和 63342 来源。
+
+若 5173 已由前端占用，可改用其他端口，并将实际来源添加到 `CORS_ORIGINS` 后重启后端；例如 5174 对应 `http://localhost:5174`。不要通过 `file://` 打开。显式设置的 CORS 列表会覆盖默认值，必须包含页面实际使用的协议、主机和端口。Compose 使用同源代理，默认 `CORS_ORIGINS=[]`，API 8001 端口不向宿主机发布。
+
+测试台将凭证保存于浏览器 localStorage，请使用测试账号，结束后点击“清空本地凭证”。

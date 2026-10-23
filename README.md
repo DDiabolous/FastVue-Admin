@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/github/actions/workflow/status/DDiabolous/FastVue-Admin/ci.yml?branch=main&label=CI" alt="CI Status" />
 </p>
 
-基于 **Vue 3、Element Plus、Pinia、Vite** 与 **FastAPI、SQLAlchemy、PostgreSQL** 的现代化企业级后台脚手架。
+基于 **Vue 3、Element Plus、Pinia、Vite** 与 **FastAPI、SQLAlchemy、PostgreSQL、Redis** 的现代化企业级后台脚手架。
 
 原生不绑定特定垂直行业（设备、资产或特定企业模型），专注于提供通用而优雅的底座，适合在此基础上高效自研内容、运营、电商、企业协同及内部管理后台。
 
@@ -82,6 +82,7 @@ FastVue-Admin 内置两套预设模式，兼顾“快速二次开发自研”与
 ## ✨ 核心特性
 
 - **开箱即用的系统管理**：用户管理、角色管理（RBAC 逐接口/按钮权限）、数据字典、系统设置、审计日志与个人中心（含头像与登录会话管理）。
+- **独立的产品用户认证**：手机号注册、密码或短信登录、双令牌刷新、重置密码与注销账号；产品用户与后台账号、角色及会话分开，附带 HTML 联调测试台。
 - **配置驱动的模块体系**：菜单、路由与访问权限共用模块声明（`src/config/modules.js`），自动装配侧边栏与面包屑。
 - **可复用的开发示例**：项目列表、卡片、分步表单和详情共享示例数据；提供树形目录维护、图片裁剪、模拟上传重试、CSV 重复处理及交互反馈。各页“页面用法”提供源码位置和接入说明，详见 [示例复用指南](docs/development.md#开发示例复用)。
 - **现代化交互与操作效率**：
@@ -120,18 +121,22 @@ npm run dev        # 启动 Starter 精简模式
 
 ---
 
-### 方式二：全栈启动（FastAPI + PostgreSQL）
+### 方式二：全栈启动（FastAPI + PostgreSQL + Redis）
 
 1. **环境准备与依赖安装**：
    后端使用现代 Python 包管理器 `uv`（Python 3.12+）：
    ```bash
    cd backend
-   uv sync
+   uv sync --locked
    ```
 
 2. **数据库初始化与启动**：
-   复制配置文件并配置数据库连接（`backend/.env`），然后执行数据库迁移与管理员初始化：
+   准备 PostgreSQL；使用产品用户认证时还需 Redis。复制配置模板，填入真实数据库连接和独立签名密钥，再执行迁移与管理员初始化：
    ```bash
+   cp .env.example .env
+   # 编辑 backend/.env：DATABASE_URL 必填；产品认证需配置 REDIS_URL、USER_JWT_SECRET
+   # 生成随机签名密钥，将输出填入 USER_JWT_SECRET
+   uv run --locked python -c "import secrets; print(secrets.token_urlsafe(32))"
    uv run --locked manage.py setup   # 自动完成 alembic upgrade head 并初始化 admin 账号
    uv run --locked manage.py dev     # 启动后端服务 (端口 8001)
    ```
@@ -143,7 +148,9 @@ npm run dev        # 启动 Starter 精简模式
    VITE_API_BASE_URL=/api/v1
    ```
    重新执行 `npm run dev` 即可，Vite 开发服务器会自动将 `/api/v1` 代理至本地 `http://127.0.0.1:8001`。
-   后端 API Swagger 接口文档位于：`http://127.0.0.1:8001/docs`。
+   后端文档：[Swagger](http://127.0.0.1:8001/docs)。
+
+`DATABASE_URL` 没有默认值，可通过 `backend/.env` 或进程环境变量提供。缺失或格式无效时直接退出；配置有效后仍会检查数据库连接、迁移版本及初始化状态。真实后台管理员密码在首次初始化时设置，与纯前端演示密码独立。
 
 ---
 
@@ -152,20 +159,50 @@ npm run dev        # 启动 Starter 精简模式
 根目录提供了生产就绪的容器编排：
 
 ```bash
-# 1. 复制环境变量模板并设置强密码
+# 1. 复制环境变量模板，设置 POSTGRES_PASSWORD 和独立的 USER_JWT_SECRET
 cp .env.example .env
 
 # 2. 首次运行：执行数据库迁移与管理员账号初始化 (需 tools profile)
 docker compose --profile tools run --rm init
 
-# 3. 启动常驻服务集群 (PostgreSQL, FastAPI API, Nginx Web)
+# 3. 启动常驻服务集群 (PostgreSQL, Redis, FastAPI API, Nginx Web)
 docker compose up -d
 
 # 4. 服务入口
 # 前端 Web 界面：http://localhost:8080
 # API 健康检查：http://localhost:8080/api/health
-# 后端 API Swagger 文档（开发调试）：http://127.0.0.1:8001/docs
+# Compose 不对宿主机开放 API 8001 端口；接口通过 Web 的 /api 路径访问
 ```
+
+---
+
+## 账号系统与接口
+
+| 范围 | 管理后台 | 产品用户 |
+| --- | --- | --- |
+| 认证接口 | `/api/v1/admin/auth/*` | `/api/v1/app/auth/*` |
+| 当前账号 | `/api/v1/admin/me` | `/api/v1/app/me` |
+| 账号表 | `admin_accounts` | `app_accounts` |
+| 认证方式 | 数据库 Bearer 会话、RBAC | JWT 访问令牌、Redis 刷新会话 |
+
+后台账号管理使用 `/api/v1/admin/accounts`，角色使用 `/api/v1/admin/roles`，角色表为 `admin_roles`。两套令牌互不通用；Full 模式中的会员管理仍是前端业务示例。
+后端按 `admin/`、`app/` 分目录，例如 `/api/v1/admin/accounts` 对应 `backend/app/api/v1/admin/accounts.py`；模型和服务按相同业务域组织，仅接口层包含版本目录。
+
+已有环境升级时先停止后端并备份数据库，再在 `backend/` 执行 `uv run --locked manage.py setup`，完成迁移后重新部署前后端。迁移保留已有数据；旧 `/api/v1/auth/*`、`/api/v1/users`、`/api/v1/user/*` 路径已移除，前端更新后需重新登录。
+
+### 产品认证联调测试台
+
+保留 [app-auth-tester.html](backend/tools/app-auth-tester.html)，可测试验证码、注册、登录、刷新、资料、退出和注销接口。在后端正常运行后，另开终端执行：
+
+```bash
+cd backend
+python3 -m http.server 5174 --directory tools
+```
+
+打开 [联调测试台](http://localhost:5174/app-auth-tester.html)，后端地址填写 `http://localhost:8001`，工具会自动附加 `/api/v1/app`。使用 5174 时，需在 `backend/.env` 的 `CORS_ORIGINS` JSON 数组中加入 `http://localhost:5174`，然后重启后端。
+默认 CORS 放行 `localhost`、`127.0.0.1` 的 5173 与 IDE 63342 端口；也可直接使用这些端口提供页面。不要双击以 `file://` 打开。
+
+短信模拟默认关闭。本地联调可显式设置 `USER_SMS_MOCK_ENABLED=true`，使用任意六位数字且不发送真实短信；生产环境禁止开启。测试凭证保存在浏览器 localStorage，请使用测试账号。详见 [产品用户认证文档](backend/docs/app-auth.md)。
 
 ---
 
@@ -175,6 +212,7 @@ docker compose up -d
 - 📘 **[二次开发规范与脚手架扩展](docs/development.md)**：深入了解布局容器、表单草稿复用、表格偏好缓存等进阶能力。
 - 🔌 **[后端接口约定与安全鉴权规范](docs/api.md)**：前后端通信协议、分页规范、错误码及鉴权规则。
 - 🛡️ **[生产运维与容灾保障指南](docs/maintenance.md)**：链路 Request ID 机制、结构化错误日志、PostgreSQL 自动化备份与灾难恢复实操。
+- 📱 **[产品用户认证与联调](backend/docs/app-auth.md)**：产品账号、Redis 会话、短信配置与独立测试台。
 - 🛠️ **[后端架构与部署运维说明](backend/README.md)**：数据库连接池、Alembic 迁移机制与性能调优。
 
 ---
@@ -192,8 +230,10 @@ docker compose up -d
 │   │   └── views/         # 页面视图（系统管理、业务模块与开发示例）
 │   └── tests/             # 前端自动化测试用例 (含 CSV 解析测试)
 ├── backend/               # FastAPI 核心后端
-│   ├── alembic/           # 数据库版本迁移脚本 (0001, 0002)
-│   ├── app/               # 后端应用核心（API 路由、ORM 模型、依赖注入）
+│   ├── alembic/           # 数据库版本迁移脚本
+│   ├── app/               # API、模型和服务按 admin/app 业务域组织
+│   ├── tools/             # HTML 产品认证联调测试台
+│   ├── docs/              # 产品认证部署与接口说明
 │   └── tests/             # PostgreSQL 集成测试集
 ├── docs/                  # 开发文档、实操教程与运维手册
 ├── compose.yaml           # Docker Compose 生产与测试编排
