@@ -22,11 +22,11 @@ from alembic import command
 from alembic.config import Config
 from pathlib import Path
 from app.core.redis import get_redis
-from app.models.app.accounts import AppAccount
-from app.services.app.auth_store import AppAuthStore
+from app.models.user.accounts import UserAccount
+from app.services.user.auth_store import UserAuthStore
 from app.services.sms import get_sms_sender
 
-ROOT = '/api/v1/app'
+ROOT = '/api/v1/user'
 TEST_SECRET = 'app-test-only-secret-' + 'x' * 48
 PASSWORD = 'App test password 123!'
 
@@ -42,7 +42,7 @@ class CapturingSender:
         self.codes[phone, scene] = code
 
 
-class AppAuthTests(unittest.IsolatedAsyncioTestCase):
+class UserAuthTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         url = os.getenv('TEST_DATABASE_URL')
         if not url:
@@ -55,7 +55,7 @@ class AppAuthTests(unittest.IsolatedAsyncioTestCase):
             user_auth_redis_prefix=self.prefix,
         )
         self.app = create_app(self.config)
-        self.schema = 'test_app_auth_' + uuid.uuid4().hex
+        self.schema = 'test_user_auth_' + uuid.uuid4().hex
         self.admin_engine = create_async_engine(url)
         async with self.admin_engine.begin() as db:
             await db.execute(text(f'CREATE SCHEMA "{self.schema}"'))
@@ -79,7 +79,7 @@ class AppAuthTests(unittest.IsolatedAsyncioTestCase):
             decode_responses=True,
         )
         await self.redis.ping()
-        self.store = AppAuthStore(self.redis, TEST_SECRET, self.prefix, self.config)
+        self.store = UserAuthStore(self.redis, TEST_SECRET, self.prefix, self.config)
         self.sender = CapturingSender()
         self.app.dependency_overrides[get_redis] = lambda: self.redis
         self.app.dependency_overrides[get_sms_sender] = lambda: self.sender
@@ -167,7 +167,7 @@ class AppAuthTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(info['phone'], '+86' + self.phone)
         self.assertEqual(info['membership']['level'], 'free')
         async with self.sessions() as db:
-            user = await db.get(AppAccount, info['id'])
+            user = await db.get(UserAccount, info['id'])
             self.assertTrue(user.password_hash.startswith('$argon2id$'))
         raw = await self.redis.hget(self.store.sessions_key(info['id']), claims['sid'])
         self.assertNotIn(tokens['refresh_token'], raw)
@@ -374,7 +374,7 @@ class AppAuthTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.status_code, 200, result.text)
         self.assertEqual((await self.me(b)).status_code, 401)
         async with self.sessions() as db:
-            user = await db.get(AppAccount, a['user']['id'])
+            user = await db.get(UserAccount, a['user']['id'])
             self.assertEqual(user.status, 'deleted')
             self.assertIsNone(user.phone)
             self.assertIsNone(user.password_hash)
@@ -494,7 +494,7 @@ class AppAuthTests(unittest.IsolatedAsyncioTestCase):
         a = await self.register()
         code = await self.send_code('reset_pwd', allow_resend=True)
         with patch.object(
-            AppAuthStore, 'revoke_all', AsyncMock(side_effect=RedisError('unavailable'))
+            UserAuthStore, 'revoke_all', AsyncMock(side_effect=RedisError('unavailable'))
         ):
             res = await self.client.post(
                 ROOT + '/auth/reset-password',
@@ -504,7 +504,7 @@ class AppAuthTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.me(a)).status_code, 200)
         await self.login(password=PASSWORD)
         with patch.object(
-            AppAuthStore, 'valid_access', AsyncMock(side_effect=RedisError('unavailable'))
+            UserAuthStore, 'valid_access', AsyncMock(side_effect=RedisError('unavailable'))
         ):
             self.assertEqual((await self.me(a)).status_code, 503)
 
@@ -526,7 +526,7 @@ class AppAuthTests(unittest.IsolatedAsyncioTestCase):
         )
         b = await self.login()
         async with self.sessions() as db:
-            user = await db.get(AppAccount, a['user']['id'])
+            user = await db.get(UserAccount, a['user']['id'])
             user.status = 'disabled'
             await db.commit()
         self.assertEqual((await self.me(b)).status_code, 401)
@@ -609,17 +609,17 @@ class AppAuthTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_legacy_routes_removed_and_new_prefix_documented(self):
         for method, path in [
-            ('get', '/api/v1/user/me'),
-            ('post', '/api/v1/user/auth/login'),
+            ('get', '/api/v1/app/me'),
+            ('post', '/api/v1/app/auth/login'),
             ('get', '/v1/admin/users'),
             ('post', '/v1/auth/login'),
             ('get', '/api/v1/app/users/me'),
         ]:
             self.assertEqual((await getattr(self.client, method)(path)).status_code, 404, path)
         schema = self.app.openapi()
-        user_paths = [p for p in schema['paths'] if p.startswith('/api/v1/app/')]
+        user_paths = [p for p in schema['paths'] if p.startswith('/api/v1/user/')]
         self.assertEqual(len(user_paths), 8)
-        self.assertIn('/api/v1/app/me', user_paths)
+        self.assertIn('/api/v1/user/me', user_paths)
         self.assertIn('/api/v1/admin/auth/login', schema['paths'])
 
     async def test_missing_configuration_and_membership_expiry(self):
@@ -628,7 +628,7 @@ class AppAuthTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(res.status_code, 503)
         a = await self.register()
         async with self.sessions() as db:
-            user = await db.get(AppAccount, a['user']['id'])
+            user = await db.get(UserAccount, a['user']['id'])
             user.membership_level = 'premium'
             user.membership_expires_at = utcnow() - timedelta(seconds=1)
             await db.commit()

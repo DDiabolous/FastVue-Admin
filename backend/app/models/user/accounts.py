@@ -6,8 +6,8 @@ from app.db.base import Base
 from app.db.base import utcnow
 
 
-class AppAccount(Base):
-    __tablename__ = 'app_accounts'
+class UserAccount(Base):
+    __tablename__ = 'users'
     __table_args__ = (
         CheckConstraint(
             "status IN ('active', 'disabled', 'deleted')", name='ck_user_account_status'

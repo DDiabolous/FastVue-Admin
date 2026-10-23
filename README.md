@@ -180,29 +180,29 @@ docker compose up -d
 
 | 范围 | 管理后台 | 产品用户 |
 | --- | --- | --- |
-| 认证接口 | `/api/v1/admin/auth/*` | `/api/v1/app/auth/*` |
-| 当前账号 | `/api/v1/admin/me` | `/api/v1/app/me` |
-| 账号表 | `admin_accounts` | `app_accounts` |
+| 认证接口 | `/api/v1/admin/auth/*` | `/api/v1/user/auth/*` |
+| 当前账号 | `/api/v1/admin/me` | `/api/v1/user/me` |
+| 账号表 | `admin_accounts` | `users` |
 | 认证方式 | 数据库 Bearer 会话、RBAC | JWT 访问令牌、Redis 刷新会话 |
 
 后台账号管理使用 `/api/v1/admin/accounts`，角色使用 `/api/v1/admin/roles`，角色表为 `admin_roles`。两套令牌互不通用；Full 模式中的会员管理仍是前端业务示例。
-后端按 `admin/`、`app/` 分目录，例如 `/api/v1/admin/accounts` 对应 `backend/app/api/v1/admin/accounts.py`；模型和服务按相同业务域组织，仅接口层包含版本目录。
+后端按 `admin/`、`user/` 分目录，例如 `/api/v1/admin/accounts` 对应 `backend/app/api/v1/admin/accounts.py`；模型和服务按相同业务域组织，仅接口层包含版本目录。
 
-已有环境升级时先停止后端并备份数据库，再在 `backend/` 执行 `uv run --locked manage.py setup`，完成迁移后重新部署前后端。迁移保留已有数据；旧 `/api/v1/auth/*`、`/api/v1/users`、`/api/v1/user/*` 路径已移除，前端更新后需重新登录。
+已有环境升级时先停止后端并备份数据库，再在 `backend/` 执行 `uv run --locked manage.py setup`，完成迁移后重新部署前后端。迁移保留已有数据；旧 `/api/v1/auth/*`、`/api/v1/users`、`/api/v1/app/*` 路径已移除，前端更新后需重新登录。
 
 ### 产品认证联调测试台
 
-保留 [app-auth-tester.html](backend/tools/app-auth-tester.html)，可测试验证码、注册、登录、刷新、资料、退出和注销接口。在后端正常运行后，另开终端执行：
+保留 [user-auth-tester.html](backend/tools/user-auth-tester.html)，可测试验证码、注册、登录、刷新、资料、退出和注销接口。在后端正常运行后，另开终端执行：
 
 ```bash
 cd backend
 python3 -m http.server 5174 --directory tools
 ```
 
-打开 [联调测试台](http://localhost:5174/app-auth-tester.html)，后端地址填写 `http://localhost:8001`，工具会自动附加 `/api/v1/app`。使用 5174 时，需在 `backend/.env` 的 `CORS_ORIGINS` JSON 数组中加入 `http://localhost:5174`，然后重启后端。
+打开 [联调测试台](http://localhost:5174/user-auth-tester.html)，后端地址填写 `http://localhost:8001`，工具会自动附加 `/api/v1/user`。使用 5174 时，需在 `backend/.env` 的 `CORS_ORIGINS` JSON 数组中加入 `http://localhost:5174`，然后重启后端。
 默认 CORS 放行 `localhost`、`127.0.0.1` 的 5173 与 IDE 63342 端口；也可直接使用这些端口提供页面。不要双击以 `file://` 打开。
 
-短信模拟默认关闭。本地联调可显式设置 `USER_SMS_MOCK_ENABLED=true`，使用任意六位数字且不发送真实短信；生产环境禁止开启。测试凭证保存在浏览器 localStorage，请使用测试账号。详见 [产品用户认证文档](backend/docs/app-auth.md)。
+短信模拟默认关闭。本地联调可显式设置 `USER_SMS_MOCK_ENABLED=true`，使用任意六位数字且不发送真实短信；生产环境禁止开启。测试凭证保存在浏览器 localStorage，请使用测试账号。详见 [产品用户认证文档](backend/docs/user-auth.md)。
 
 ---
 
@@ -212,7 +212,7 @@ python3 -m http.server 5174 --directory tools
 - 📘 **[二次开发规范与脚手架扩展](docs/development.md)**：深入了解布局容器、表单草稿复用、表格偏好缓存等进阶能力。
 - 🔌 **[后端接口约定与安全鉴权规范](docs/api.md)**：前后端通信协议、分页规范、错误码及鉴权规则。
 - 🛡️ **[生产运维与容灾保障指南](docs/maintenance.md)**：链路 Request ID 机制、结构化错误日志、PostgreSQL 自动化备份与灾难恢复实操。
-- 📱 **[产品用户认证与联调](backend/docs/app-auth.md)**：产品账号、Redis 会话、短信配置与独立测试台。
+- 📱 **[产品用户认证与联调](backend/docs/user-auth.md)**：产品账号、Redis 会话、短信配置与独立测试台。
 - 🛠️ **[后端架构与部署运维说明](backend/README.md)**：数据库连接池、Alembic 迁移机制与性能调优。
 
 ---
@@ -231,7 +231,7 @@ python3 -m http.server 5174 --directory tools
 │   └── tests/             # 前端自动化测试用例 (含 CSV 解析测试)
 ├── backend/               # FastAPI 核心后端
 │   ├── alembic/           # 数据库版本迁移脚本
-│   ├── app/               # API、模型和服务按 admin/app 业务域组织
+│   ├── app/               # API、模型和服务按 admin/user 业务域组织
 │   ├── tools/             # HTML 产品认证联调测试台
 │   ├── docs/              # 产品认证部署与接口说明
 │   └── tests/             # PostgreSQL 集成测试集

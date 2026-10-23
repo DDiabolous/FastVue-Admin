@@ -11,9 +11,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import get_settings
 from app.db.session import create_database
-from app.models.app.accounts import AppAccount
+from app.models.user.accounts import UserAccount
 
-COLUMNS = tuple(column.name for column in AppAccount.__table__.columns)
+COLUMNS = tuple(column.name for column in UserAccount.__table__.columns)
 
 
 async def import_records(sessions, records):
@@ -24,18 +24,18 @@ async def import_records(sessions, records):
         for record in records:
             if record['password_hash'] and not record['password_hash'].startswith('$argon2id$'):
                 raise ValueError('源数据包含非 Argon2id 密码，未导入')
-            current = await db.get(AppAccount, record['id'])
+            current = await db.get(UserAccount, record['id'])
             if current is not None:
                 if any(getattr(current, key) != record[key] for key in COLUMNS):
                     raise ValueError('用户 ID 对应的数据不一致，整批导入已回滚')
                 skipped += 1
                 continue
             if record['phone'] is not None and await db.scalar(
-                select(AppAccount.id).where(AppAccount.phone == record['phone'])
+                select(UserAccount.id).where(UserAccount.phone == record['phone'])
             ):
                 raise ValueError('目标已存在相同手机号，整批导入已回滚')
             # Core insert preserves all timestamps and nullable values exactly.
-            await db.execute(insert(AppAccount.__table__).values(**record))
+            await db.execute(insert(UserAccount.__table__).values(**record))
             imported += 1
     return imported, skipped
 

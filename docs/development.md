@@ -108,7 +108,7 @@ full 业务示例继续使用原有浏览器 Mock 数据，未接入核心后端
 
 ## 后端模块与接口版本
 
-核心后端按 `api → services → repositories → models` 分工，配置、异常、安全与启动检查在 `core/`，连接池与 ORM 基类在 `db/`。新增业务时分别添加模型、Schema、Repository、Service、v1 路由及迁移，按接口调用方在 `app/api/v1/admin/router.py` 或 `app/api/v1/app/router.py` 注册新路由。已有核心 CRUD 可参考用户或字典模块。
+核心后端按 `api → services → repositories → models` 分工，配置、异常、安全与启动检查在 `core/`，连接池与 ORM 基类在 `db/`。新增业务时分别添加模型、Schema、Repository、Service、v1 路由及迁移，按接口调用方在 `app/api/v1/admin/router.py` 或 `app/api/v1/user/router.py` 注册新路由。已有核心 CRUD 可参考用户或字典模块。
 
 Service 负责业务校验与事务提交，Repository 负责查询及持久化，不在 HTTP 路由中写 SQL。业务错误使用 `AppError`，成功写操作与审计日志在同一事务中提交。新增 API 版本时在 `app/api/router.py` 并行挂载版本路由，保留已发布版本的输入输出契约；API 版本与数据库迁移版本独立管理。
 

@@ -80,16 +80,16 @@
 
 业务接口按 URL 版本组织，当前仅实现 `/api/v1`；表格中的资源路径相对于该 Base URL。基础设施接口 `/api/health` 保持独立，不加业务版本号。`/docs` 和 `/openapi.json` 展示实际注册的版本路由及输入、输出 Schema。
 
-旧的 `/api/auth/*`、`/api/users` 等未版本化业务地址已移除，访问返回 404。现有接入方需将 Base URL 从 `/api` 改为 `/api/v1`；请求响应字段及权限码保持一致；后台账号、角色和产品账号分别存储于 `admin_accounts`、`admin_roles`、`app_accounts`，升级需执行迁移。反向代理仍转发整个 `/api/` 前缀，不要剥离 `/v1`。
+旧的 `/api/auth/*`、`/api/users` 等未版本化业务地址已移除，访问返回 404。现有接入方需将 Base URL 从 `/api` 改为 `/api/v1`；请求响应字段及权限码保持一致；后台账号、角色和产品账号分别存储于 `admin_accounts`、`admin_roles`、`users`，升级需执行迁移。反向代理仍转发整个 `/api/` 前缀，不要剥离 `/v1`。
 
 兼容性新增字段与修复继续留在 v1。不兼容的参数、响应或行为变化应新增 `app/api/v2/` 并在 `app/api/router.py` 挂载；按需要定义新的 Schema 和适配逻辑，保持 v1 契约及测试。Service、Repository 和数据库模型按业务复用，无需为 API 版本复制整套数据表。当前不提供 v2 接口。
 
 
 ## 产品用户账号
 
-产品用户使用 `/api/v1/app/auth/*` 注册、登录、刷新和退出，`GET /api/v1/app/me` 获取当前账号。
-其 JWT 与后台会话令牌互不通用，后台账号没有产品端自助注册入口。完整契约见 [产品认证文档](../backend/docs/app-auth.md)。
+产品用户使用 `/api/v1/user/auth/*` 注册、登录、刷新和退出，`GET /api/v1/user/me` 获取当前账号。
+其 JWT 与后台会话令牌互不通用，后台账号没有产品端自助注册入口。完整契约见 [产品认证文档](../backend/docs/user-auth.md)。
 
-数据库表为 `admin_accounts`、`admin_roles`、`app_accounts`；后台会话及登录限流表为 `admin_sessions`、`admin_login_buckets`。
+数据库表为 `admin_accounts`、`admin_roles`、`users`；后台会话及登录限流表为 `admin_sessions`、`admin_login_buckets`。
 升级前停止后端，在 `backend` 执行 `uv run --locked alembic upgrade head`，再部署新版后端及前端。
-原 `/api/v1/auth/*`、`/api/v1/users`、`/api/v1/user/*` 不再提供。前端登录态存储键改为 `admin_token`，升级后需重新登录。
+原 `/api/v1/auth/*`、`/api/v1/users`、`/api/v1/app/*` 不再提供。前端登录态存储键改为 `admin_token`，升级后需重新登录。

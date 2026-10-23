@@ -17,7 +17,7 @@
     <!-- 顶部全局配置栏 -->
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center space-x-3">
-        <span class="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded">APP AUTH</span>
+        <span class="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded">USER AUTH</span>
         <h1 class="text-lg font-bold text-slate-900">Android App 认证接口联调测试台</h1>
       </div>
 
@@ -26,7 +26,7 @@
           <label class="text-slate-500 font-medium">后端地址:</label>
           <input id="baseUrl" type="text" value="http://localhost:8001"
             class="border border-slate-300 rounded px-2.5 py-1 w-48 focus:outline-none focus:border-blue-500 font-mono text-xs" />
-          <span class="text-xs text-slate-400 font-mono">/api/v1/app</span>
+          <span class="text-xs text-slate-400 font-mono">/api/v1/user</span>
         </div>
 
         <div class="flex items-center space-x-1">
@@ -93,7 +93,7 @@
             <!-- Tab: 3. 用户登录 -->
             <div id="panel-login" class="space-y-4">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-mono text-slate-400">POST /api/v1/app/auth/login</span>
+                <span class="text-xs font-mono text-slate-400">POST /api/v1/user/auth/login</span>
                 <div class="flex space-x-3 text-xs">
                   <label class="flex items-center space-x-1 cursor-pointer">
                     <input type="radio" name="loginType" value="password" checked onchange="toggleLoginType()" />
@@ -118,7 +118,7 @@
             <!-- Tab: 2. 用户注册 -->
             <div id="panel-register" class="space-y-4 hidden">
               <div class="flex justify-between items-center">
-                <span class="text-xs font-mono text-slate-400">POST /api/v1/app/auth/register</span>
+                <span class="text-xs font-mono text-slate-400">POST /api/v1/user/auth/register</span>
                 <span class="text-xs text-emerald-600">注册即登录：成功直接返回双 Token 与 User</span>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -141,7 +141,7 @@
             <!-- Tab: 5. 重置密码 -->
             <div id="panel-reset" class="space-y-4 hidden">
               <div class="flex justify-between items-center">
-                <span class="text-xs font-mono text-slate-400">POST /api/v1/app/auth/reset-password</span>
+                <span class="text-xs font-mono text-slate-400">POST /api/v1/user/auth/reset-password</span>
                 <span class="text-xs text-amber-600">成功后该用户所有设备的令牌立即失效</span>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -164,7 +164,7 @@
             <!-- Tab: 8. 注销账号 -->
             <div id="panel-delete" class="space-y-4 hidden">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-mono text-slate-400">POST /api/v1/app/auth/delete-account (需携带 Access Token)</span>
+                <span class="text-xs font-mono text-slate-400">POST /api/v1/user/auth/delete-account (需携带 Access Token)</span>
                 <div class="flex space-x-3 text-xs">
                   <label class="flex items-center space-x-1 cursor-pointer">
                     <input type="radio" name="deleteMode" value="password" checked onchange="toggleDeleteMode()" />
@@ -276,26 +276,26 @@
     // 本地状态管理 (不使用 Cookie，纯 JSON 内存/Storage 收发)
     // ==========================================
     const state = {
-      accessToken: localStorage.getItem('app_access_token') || '',
-      refreshToken: localStorage.getItem('app_refresh_token') || '',
-      user: JSON.parse(localStorage.getItem('app_user') || 'null'),
+      accessToken: localStorage.getItem('user_access_token') || '',
+      refreshToken: localStorage.getItem('user_refresh_token') || '',
+      user: JSON.parse(localStorage.getItem('user_profile') || 'null'),
       refreshingPromise: null // Single-flight 并发刷新锁
     };
 
     function saveTokens(access, refresh, userObj = undefined) {
       if (access !== undefined) {
         state.accessToken = access;
-        localStorage.setItem('app_access_token', access);
+        localStorage.setItem('user_access_token', access);
         document.getElementById('accessTokenInput').value = access;
       }
       if (refresh !== undefined) {
         state.refreshToken = refresh;
-        localStorage.setItem('app_refresh_token', refresh);
+        localStorage.setItem('user_refresh_token', refresh);
         document.getElementById('refreshTokenInput').value = refresh;
       }
       if (userObj !== undefined) {
         state.user = userObj;
-        localStorage.setItem('app_user', JSON.stringify(userObj));
+        localStorage.setItem('user_profile', JSON.stringify(userObj));
       }
       renderStateUI();
     }
@@ -303,8 +303,8 @@
     function syncManualToken() {
       state.accessToken = document.getElementById('accessTokenInput').value;
       state.refreshToken = document.getElementById('refreshTokenInput').value;
-      localStorage.setItem('app_access_token', state.accessToken);
-      localStorage.setItem('app_refresh_token', state.refreshToken);
+      localStorage.setItem('user_access_token', state.accessToken);
+      localStorage.setItem('user_refresh_token', state.refreshToken);
       renderStateUI();
     }
 
@@ -359,7 +359,7 @@
     // ==========================================
     function getApiBase() {
       const base = document.getElementById('baseUrl').value.replace(/\/+$/, '');
-      return `${base}/api/v1/app`;
+      return `${base}/api/v1/user`;
     }
 
     async function requestApi(path, { method = 'POST', body = null, auth = false, isRetry = false } = {}) {

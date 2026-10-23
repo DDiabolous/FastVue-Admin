@@ -2,18 +2,18 @@ import re
 from typing import Annotated, Generic, Literal, TypeVar
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .accounts import AppProfile
+from .accounts import UserProfile
 
 Scene = Literal['register', 'login', 'reset_pwd', 'delete_account']
 Code = Annotated[str, Field(pattern=r'^[0-9]{6}$')]
 Password = Annotated[str, Field(min_length=8, max_length=128)]
 
 
-class AppRequest(BaseModel):
+class UserRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
-class AppPhoneRequest(AppRequest):
+class UserPhoneRequest(UserRequest):
     phone: str = Field(min_length=8, max_length=16)
 
     @field_validator('phone')
@@ -26,17 +26,17 @@ class AppPhoneRequest(AppRequest):
         return value
 
 
-class AppSendCodeRequest(AppPhoneRequest):
+class UserSendCodeRequest(UserPhoneRequest):
     scene: Scene
 
 
-class AppRegisterRequest(AppPhoneRequest):
+class UserRegisterRequest(UserPhoneRequest):
     code: Code
     password: Password
     device_id: str = Field(min_length=1, max_length=128, pattern=r'^\S+$')
 
 
-class AppLoginRequest(AppPhoneRequest):
+class UserLoginRequest(UserPhoneRequest):
     login_type: Literal['password', 'sms']
     credential: str = Field(min_length=1, max_length=128)
     device_id: str = Field(min_length=1, max_length=128, pattern=r'^\S+$')
@@ -48,16 +48,16 @@ class AppLoginRequest(AppPhoneRequest):
         return self
 
 
-class AppRefreshRequest(AppRequest):
+class UserRefreshRequest(UserRequest):
     refresh_token: str = Field(min_length=1, max_length=256)
 
 
-class AppResetPasswordRequest(AppPhoneRequest):
+class UserResetPasswordRequest(UserPhoneRequest):
     code: Code
     new_password: Password
 
 
-class AppDeleteAccountRequest(AppRequest):
+class UserDeleteAccountRequest(UserRequest):
     code: Code | None = None
     password: str | None = Field(default=None, min_length=1, max_length=128)
 
@@ -68,7 +68,7 @@ class AppDeleteAccountRequest(AppRequest):
         return self
 
 
-class AppTokenPair(BaseModel):
+class UserTokenPair(BaseModel):
     access_token: str
     refresh_token: str
     token_type: Literal['bearer']
@@ -76,36 +76,36 @@ class AppTokenPair(BaseModel):
     refresh_expires_in: int
 
 
-class AppAuthResult(AppTokenPair):
-    user: AppProfile
+class UserAuthResult(UserTokenPair):
+    user: UserProfile
 
 
-class AppCodeSent(BaseModel):
+class UserCodeSent(BaseModel):
     expires_in: int
     retry_after: int
 
 
-class AppDeletedAccount(BaseModel):
+class UserDeletedAccount(BaseModel):
     status: Literal['deleted']
 
 
 T = TypeVar('T')
 
 
-class AppResponse(BaseModel, Generic[T]):
+class UserResponse(BaseModel, Generic[T]):
     code: Literal[200] = 200
     message: str
     data: T
 
 
-class AppErrorResponse(BaseModel):
+class UserErrorResponse(BaseModel):
     code: int
     message: str
     data: None = None
 
 
-APP_ERROR_RESPONSES = {
-    status: {'model': AppErrorResponse, 'description': description}
+USER_ERROR_RESPONSES = {
+    status: {'model': UserErrorResponse, 'description': description}
     for status, description in {
         400: '验证码或二次身份核验失败',
         401: '登录凭证或令牌无效',

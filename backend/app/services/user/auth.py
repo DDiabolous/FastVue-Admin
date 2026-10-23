@@ -6,15 +6,15 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from starlette.concurrency import run_in_threadpool
-from app.core.app_security import app_unauthorized, make_tokens, parse_refresh
+from app.core.user_security import user_unauthorized, make_tokens, parse_refresh
 from app.core.passwords import hash_password, verify_password
 from app.db.base import utcnow
-from app.models.app.accounts import AppAccount
+from app.models.user.accounts import UserAccount
 
 DUMMY_HASH = hash_password(secrets.token_urlsafe(32))
 
 
-def profile(user: AppAccount):
+def profile(user: UserAccount):
     expired = user.membership_expires_at is not None and user.membership_expires_at <= utcnow()
     level = 'free' if expired else user.membership_level
     return {
@@ -35,8 +35,8 @@ def profile(user: AppAccount):
 async def by_phone(db, phone):
     return (
         await db.execute(
-            select(AppAccount)
-            .where(AppAccount.phone == phone)
+            select(UserAccount)
+            .where(UserAccount.phone == phone)
             .with_for_update()
             .execution_options(populate_existing=True)
         )
@@ -46,8 +46,8 @@ async def by_phone(db, phone):
 async def locked_user(db, uid):
     return (
         await db.execute(
-            select(AppAccount)
-            .where(AppAccount.id == uid)
+            select(UserAccount)
+            .where(UserAccount.id == uid)
             .with_for_update()
             .execution_options(populate_existing=True)
         )
@@ -67,7 +67,7 @@ async def register(db, store, payload):
         raise HTTPException(400, '验证码无效或已过期')
     if await by_phone(db, payload.phone):
         raise HTTPException(409, '该手机号已注册')
-    user = AppAccount(
+    user = UserAccount(
         phone=payload.phone,
         nickname='用户' + payload.phone[-4:],
         password_hash=await run_in_threadpool(hash_password, payload.password),
@@ -113,10 +113,10 @@ async def refresh(db, store, token):
     uid, sid = parse_refresh(token)
     user = await locked_user(db, uid)
     if user is None or user.status != 'active':
-        raise app_unauthorized()
+        raise user_unauthorized()
     tokens, jti = make_tokens(user, sid, store.config)
     if not await store.rotate(uid, sid, token, tokens['refresh_token'], jti, user.auth_version):
-        raise app_unauthorized()
+        raise user_unauthorized()
     await db.commit()
     return tokens
 

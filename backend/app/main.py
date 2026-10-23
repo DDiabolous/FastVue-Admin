@@ -47,7 +47,7 @@ def create_app(config=None):
         request.state.request_id = request_id
         response = await call_next(request)
         response.headers['X-Request-ID'] = request_id
-        if request.url.path.startswith('/api/v1/app/'):
+        if request.url.path.startswith('/api/v1/user/'):
             response.headers['Cache-Control'] = 'no-store'
             response.headers['Pragma'] = 'no-cache'
         return response

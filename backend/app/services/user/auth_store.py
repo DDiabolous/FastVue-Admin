@@ -95,7 +95,7 @@ def rate_limited(seconds):
     )
 
 
-class AppAuthStore:
+class UserAuthStore:
     def __init__(self, redis: Redis, secret: str, prefix: str, config: Settings):
         self.redis, self.secret, self.prefix = redis, secret, prefix
         self.config = config
@@ -229,8 +229,8 @@ class AppAuthStore:
         await self.redis.delete(self.sessions_key(uid))
 
 
-def get_app_store(request: Request, redis: Redis = Depends(get_redis)):
-    from app.core.app_security import app_secret
+def get_user_store(request: Request, redis: Redis = Depends(get_redis)):
+    from app.core.user_security import user_secret
 
     config = request.app.state.config
-    return AppAuthStore(redis, app_secret(config), config.user_auth_redis_prefix, config)
+    return UserAuthStore(redis, user_secret(config), config.user_auth_redis_prefix, config)

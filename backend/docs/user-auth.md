@@ -1,6 +1,6 @@
 # 用户注册与认证接口
 
-注册用户使用 PostgreSQL `app_accounts` 表和独立 Redis 命名空间，与后台管理员 `admin_accounts`、后台会话完全分开。
+注册用户使用 PostgreSQL `users` 表和独立 Redis 命名空间，与后台管理员 `admin_accounts`、后台会话完全分开。
 不使用 Cookie，不修改 Web 页面。生产环境通过 HTTPS 提供服务。
 
 ## 部署与配置
@@ -64,7 +64,7 @@ Content-Type: application/json
 
 ## 通用约定
 
-- 用户接口前缀：`/api/v1/app`；沿用目标仓库后台路径 `/api/v1/admin/auth/*`、`/api/v1/admin/accounts`。两套账号及令牌互不通用。
+- 用户接口前缀：`/api/v1/user`；沿用目标仓库后台路径 `/api/v1/admin/auth/*`、`/api/v1/admin/accounts`。两套账号及令牌互不通用。
 - 请求/响应为 JSON；成功结构：`{"code":200,"message":"success","data":...}`。
 - HTTP 错误状态为 400 / 401 / 403 / 409 / 422 / 429 / 503，同时返回同名 `code`、`message` 和 `data:null`。
 - 401 表示访问或刷新凭证无效；429 携带 `Retry-After` 秒数，客户端应停止重试并等待。
@@ -236,7 +236,7 @@ Authorization: Bearer <access_token>
 ```bash
 # PostgreSQL 必须显式设置 TEST_DATABASE_URL，Redis 默认使用本机 15 号测试库，PostgreSQL 每次使用随机独立 schema。
 # 可通过 USER_AUTH_TEST_REDIS_URL 修改 Redis 测试连接。
-TEST_DATABASE_URL='<专用 PostgreSQL 测试连接>' uv run --locked pytest tests/test_app_auth.py tests/test_sms_gateway.py -q
+TEST_DATABASE_URL='<专用 PostgreSQL 测试连接>' uv run --locked pytest tests/test_user_auth.py tests/test_sms_gateway.py -q
 ```
 
 真实验证码测试会显式关闭模拟模式，模拟模式另有独立测试。测试 Redis 采用随机命名空间，不执行 FLUSHDB；数据库只清理测试中生成的账号。
@@ -249,24 +249,24 @@ JWT 的固定算法、issuer/audience 和必要 claims 验证参考 [PyJWT 官�
 
 ## 迁移说明与统一命名
 
-产品用户使用独立的 `app_accounts` 表，不赋予后台角色；后台账号存储于 `admin_accounts`。
-接口、模型、Schema 和服务按 `admin/`、`app/` 业务域分目录；Python 字段及函数使用 snake_case、类型使用 PascalCase。
+产品用户使用独立的 `users` 表，不赋予后台角色；后台账号存储于 `admin_accounts`。
+接口、模型、Schema 和服务按 `admin/`、`user/` 业务域分目录；Python 字段及函数使用 snake_case、类型使用 PascalCase。
 
 | 用途 | 当前文件 / 类型 |
 | --- | --- |
-| 产品认证接口 | `api/v1/app/auth.py` |
-| 产品资料接口 | `api/v1/app/profile.py` |
-| 产品令牌校验 | `core/app_security.py` |
-| 产品认证请求与响应 | `schemas/app/auth.py` |
-| 产品账号资料 | `schemas/app/accounts.py` |
-| 产品认证业务与会话 | `services/app/auth.py`、`services/app/auth_store.py` |
-| 产品账号 | `models/app/accounts.py` / `AppAccount` |
+| 产品认证接口 | `api/v1/user/auth.py` |
+| 产品资料接口 | `api/v1/user/profile.py` |
+| 产品令牌校验 | `core/user_security.py` |
+| 产品认证请求与响应 | `schemas/user/auth.py` |
+| 产品账号资料 | `schemas/user/accounts.py` |
+| 产品认证业务与会话 | `services/user/auth.py`、`services/user/auth_store.py` |
+| 产品账号 | `models/user/accounts.py` / `UserAccount` |
 | 后台账号 | `models/admin/accounts.py` / `AdminAccount` |
 | 后台角色 | `models/admin/roles.py` / `AdminRole` |
-| 测试 | `tests/test_app_auth.py` |
+| 测试 | `tests/test_user_auth.py` |
 
 配置项 `USER_JWT_*`、`USER_AUTH_REDIS_PREFIX` 保留原名及默认值，以兼容现有部署和会话。`USER_SMS_MOCK_ENABLED` 默认关闭，生产环境禁止开启；本地联调需显式开启。
-历史迁移不改写；`0006` 重命名后台账号与角色表，`0007` 重命名产品账号、后台会话和登录限流表。升级前停止后端，执行 `uv run --locked alembic upgrade head`，再启动新版。
+历史迁移不改写；`0006` 重命名后台账号与角色表，`0007` 重命名产品账号、后台会话和登录限流表；`0008` 将产品账号表从 `app_accounts` 重命名为 `users`。升级前停止后端，执行 `uv run --locked alembic upgrade head`，再启动新版。
 
 响应字段沿用本仓库 `message`（原中台为 `msg`），客户端据此调整。JWT 内部 scope/audience 仍为 `app`，仅表示终端用户认证域；签名密钥、issuer、Redis 前缀均独立配置。
 历史 Alembic 迁移保持不变；`0005` 引入产品账号表，后续版本执行表重命名。
@@ -290,9 +290,9 @@ uv run --locked python -m app.cli init
 
 ```bash
 # 先检查源数据；不连接目标数据库、不写入任何数据。
-uv run --locked python -m app.migrate_app_accounts --source-env /path/to/source/backend/.env --dry-run
+uv run --locked python -m app.migrate_user_accounts --source-env /path/to/source/backend/.env --dry-run
 # .env 中 DATABASE_URL 指向目标数据库；完成迁移建表后导入。
-uv run --locked python -m app.migrate_app_accounts --source-env /path/to/source/backend/.env
+uv run --locked python -m app.migrate_user_accounts --source-env /path/to/source/backend/.env
 ```
 
 保留用户 ID、Argon2id 哈希、手机号、会员资料、状态和时间。完整事务导入，完全一致的记录跳过，冲突拒绝并回滚，不覆盖目标数据。
@@ -300,9 +300,11 @@ uv run --locked python -m app.migrate_app_accounts --source-env /path/to/source/
 
 ### 独立 HTML 联调工具
 
-保留 `tools/app-auth-tester.html` 用于注册、登录、验证码、刷新、退出及注销接口联调。
-后端地址默认 `http://localhost:8001`，工具自动附加 `/api/v1/app`。
-在 backend 目录运行 `python3 -m http.server 5173 --directory tools`，打开 `http://localhost:5173/app-auth-tester.html`；也可通过 IDE 的 63342 端口预览。
+保留 `tools/user-auth-tester.html` 用于注册、登录、验证码、刷新、退出及注销接口联调。
+后端地址默认 `http://localhost:8001`，工具自动附加 `/api/v1/user`。
+在 backend 目录运行 `python3 -m http.server 5173 --directory tools`，打开 `http://localhost:5173/user-auth-tester.html`；也可通过 IDE 的 63342 端口预览。
 默认 CORS 允许 `localhost`、`127.0.0.1` 的 5173 和 63342 端口。显式设置 `CORS_ORIGINS` 时需包含实际页面来源（协议、主机及端口，不含路径），修改后重启后端。
 短信模拟模式默认关闭；如需本地模拟，应显式设置 `USER_SMS_MOCK_ENABLED=true`，生产环境禁止开启。
 工具将测试凭证保存在浏览器 localStorage，可点击“清空本地凭证”清理；请使用测试账号。
+
+产品接口现使用 `/api/v1/user/*`，原 `/api/v1/app/*` 返回 404；升级需执行迁移至 `0008`，不会重建或清空账号。JWT 内部 claims、签名密钥及 Redis 命名空间保持兼容，以保留现有会话。

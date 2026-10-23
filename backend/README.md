@@ -18,10 +18,10 @@ FastAPI + SQLAlchemy 2 异步 ORM + PostgreSQL 的通用后台核心，产品用
 
 `setup` 合并迁移与按需初始化，重复执行不会重置账号。`dev` 默认开启重载，`serve` 默认关闭重载，二者默认监听 `127.0.0.1:8001` 并关闭代理头信任。
 
-后台账号存储在 `admin_accounts`，后台角色存储在 `admin_roles`；产品用户存储在 `app_accounts`。
+后台账号存储在 `admin_accounts`，后台角色存储在 `admin_roles`；产品用户存储在 `users`。
 迁移 `0006` 将原 `users`、`roles` 表直接重命名，保留账号、角色和会话外键关系。
 升级已有环境时先停止后端服务，执行 `uv run --locked alembic upgrade head`，再启动新版后端。
-后台接口统一为 `/api/v1/admin/*`，产品接口统一为 `/api/v1/app/*`；保留 `system:users:*`、`system:roles:*` 权限键。迁移 `0007` 将产品用户表重命名为 `app_accounts`，后台会话与限流表重命名为 `admin_sessions`、`admin_login_buckets`。
+后台接口统一为 `/api/v1/admin/*`，产品接口统一为 `/api/v1/user/*`；保留 `system:users:*`、`system:roles:*` 权限键。迁移 `0007` 将后台会话与限流表重命名为 `admin_sessions`、`admin_login_buckets`；`0008` 将产品用户表由 `app_accounts` 重命名为 `users`，保留原有数据。
 
 ## Python 环境与依赖
 
@@ -121,7 +121,7 @@ API 每次启动都会在接收请求前检查 PostgreSQL 连接、Alembic 迁�
 - 数据完整性：账号、角色标识、字典类型与值的唯一性受数据库约束；被引用角色不可删除或改标识。
 - 登录限流：基于数据库、按真实来源 IP 计数，默认每 900 秒最多 10 次登录尝试，多个进程共享；达到限制返回 429 和 `Retry-After`。成功尝试也计入窗口。
 - 审计：服务端记录登录成功、失败、限流、退出及系统写操作。写操作与成功审计同事务提交；不保存密码、请求体或 Token，不提供清空日志接口。
-- 配置：`/api/v1/admin/settings/public` 仅公开应用名称与介绍，其余配置由后台权限控制。`registration` 表示备案信息，不是开放注册开关；后台账号不开放自助注册，产品用户通过 `/api/v1/app/auth/register` 注册。
+- 配置：`/api/v1/admin/settings/public` 仅公开应用名称与介绍，其余配置由后台权限控制。`registration` 表示备案信息，不是开放注册开关；后台账号不开放自助注册，产品用户通过 `/api/v1/user/auth/register` 注册。
 - 事务：使用 PostgreSQL 事务级 advisory lock 协调授权读取和写操作，避免权限校验与修改之间的竞态。当前核心写请求串行，适合管理后台；扩展高吞吐业务时应拆分锁范围并补充并发测试。
 
 时间统一以 UTC ISO 8601 输出，列表按创建时间倒序及 ID 稳定排序；字典优先按 `sort` 升序。分页参数非法返回 422，唯一约束或引用冲突返回 409。数据库异常回滚，对外不暴露 SQL 或连接信息。
@@ -172,7 +172,7 @@ app/
   api/
     router.py                 /api 下的版本路由汇总
     v1/
-      router.py               /v1 下的 admin/app 路由汇总
+      router.py               /v1 下的 admin/user 路由汇总
       admin/
         router.py             /api/v1/admin
         dependencies.py       后台认证、权限及审计上下文
@@ -183,38 +183,38 @@ app/
         dictionary.py         /dictionary/*
         settings.py           /settings/*
         logs.py               /logs
-      app/
-        router.py             /api/v1/app
+      user/
+        router.py             /api/v1/user
         dependencies.py       产品账号数据库会话
         auth.py               /auth/*
         profile.py            /me
   models/admin/               后台账号、角色、会话及系统资源模型
-  models/app/                 产品账号模型
+  models/user/                 产品账号模型
   schemas/admin/              后台请求与响应契约
-  schemas/app/                产品认证及账号契约
+  schemas/user/                产品认证及账号契约
   schemas/common.py           共享输入类型及分页契约
   services/admin/             后台业务、权限及审计
-  services/app/               产品认证及 Redis 会话
+  services/user/               产品认证及 Redis 会话
   services/sms.py             短信网关适配
   repositories/admin/         后台数据查询与持久化
   repositories/base.py        通用 Repository 基类
   cli.py                      初始化和过期数据清理命令
 alembic/                      数据库版本迁移
-tools/app-auth-tester.html    产品认证 HTML 联调测试台
-docs/app-auth.md              产品认证部署与接口契约
+tools/user-auth-tester.html    产品认证 HTML 联调测试台
+docs/user-auth.md              产品认证部署与接口契约
 tests/                        PostgreSQL 与 API 契约测试
 pyproject.toml                项目依赖与开发依赖组
 uv.lock                       uv 依赖锁文件
 .python-version               默认 Python 版本
 ```
 
-目录按账号域划分：例如 `/api/v1/admin/accounts` 对应 `api/v1/admin/accounts.py`，业务服务为 `services/admin/accounts.py`，模型为 `models/admin/accounts.py`。目录已表达业务域，文件名不重复添加 `admin_`、`app_`；类型仍使用 `AdminAccount`、`AppAccount`，避免跨域导入混淆。仅接口层保留版本目录，服务与模型可供后续 API 版本复用。
+目录按账号域划分：例如 `/api/v1/admin/accounts` 对应 `api/v1/admin/accounts.py`，业务服务为 `services/admin/accounts.py`，模型为 `models/admin/accounts.py`。目录已表达业务域，文件名不重复添加 `admin_`、`user_`；类型仍使用 `AdminAccount`、`UserAccount`，避免跨域导入混淆。仅接口层保留版本目录，服务与模型可供后续 API 版本复用。
 
 API 路由仅处理参数、依赖和响应，具体业务由对应 Service 执行；Service 通过 Repository 访问数据库，并统一提交写操作及其审计日志。请求会话管理器负责异常回滚与释放连接，不再在路由和依赖中重复提交事务。业务错误通过 `core/errors.py` 的 `AppError` 表达，由 HTTP 层统一映射，Service 不依赖 FastAPI 的 Request 或 HTTPException。
 
 用户、角色、字典各有独立 Service 和 Repository，通用分页及 CRUD 流程可以复用基类；新增资源无需修改按资源名称分支的中心函数。用户列表批量查询角色，避免逐行查询。
 
-业务版本挂载在 `api/router.py`，当前为 `/api/v1`。将来新增 v2 时并行挂载新路由，按需增加新的请求/响应 Schema 或适配逻辑，复用业务服务和模型；`/api/health` 不随业务版本变化。Swagger 文档根据实际路由生成。升级需执行 Alembic 迁移至 `0007`，保留原有数据和会话；旧业务 URL 返回 404。
+业务版本挂载在 `api/router.py`，当前为 `/api/v1`。将来新增 v2 时并行挂载新路由，按需增加新的请求/响应 Schema 或适配逻辑，复用业务服务和模型；`/api/health` 不随业务版本变化。Swagger 文档根据实际路由生成。升级需执行 Alembic 迁移至 `0008`，保留原有数据和会话；旧业务 URL 返回 404。
 
 新增权限时同步修改 `app/core/admin_permissions.py` 与前端 `config/permissions.js`，为新模块增加模型、Schema、Service、路由、迁移及越权测试。菜单继续由前端代码声明，未提供动态菜单 CRUD。
 
@@ -224,7 +224,7 @@ API 路由仅处理参数、依赖和响应，具体业务由对应 Service 执�
 
 ## 注册用户认证
 
-产品用户使用 `/api/v1/app/auth/*` 注册、登录、刷新、重置密码和注销，通过 `GET /api/v1/app/me` 查询资料及会员状态。账号存储于 `app_accounts`，与后台账号、角色和令牌独立；后台账号没有自助注册接口。
+产品用户使用 `/api/v1/user/auth/*` 注册、登录、刷新、重置密码和注销，通过 `GET /api/v1/user/me` 查询资料及会员状态。账号存储于 `users`，与后台账号、角色和令牌独立；后台账号没有自助注册接口。
 
 产品端访问令牌固定 15 分钟，刷新令牌轮换，Redis 不可用时返回 503；配置签名密钥后才可使用产品认证。生成密钥：
 
@@ -232,17 +232,17 @@ API 路由仅处理参数、依赖和响应，具体业务由对应 Service 执�
 uv run --locked python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-将输出填入 `backend/.env` 的 `USER_JWT_SECRET`，配置 Redis 和真实短信网关后重启后端。本地需要短信模拟时，显式设置 `USER_SMS_MOCK_ENABLED=true`；生产环境禁止开启。完整契约见 [产品用户认证文档](docs/app-auth.md)。
+将输出填入 `backend/.env` 的 `USER_JWT_SECRET`，配置 Redis 和真实短信网关后重启后端。本地需要短信模拟时，显式设置 `USER_SMS_MOCK_ENABLED=true`；生产环境禁止开启。完整契约见 [产品用户认证文档](docs/user-auth.md)。
 
 ### HTML 联调测试台
 
-保留 [tools/app-auth-tester.html](tools/app-auth-tester.html)。在后端已启动的情况下，另开终端，在 `backend/` 目录运行：
+保留 [tools/user-auth-tester.html](tools/user-auth-tester.html)。在后端已启动的情况下，另开终端，在 `backend/` 目录运行：
 
 ```bash
 python3 -m http.server 5173 --directory tools
 ```
 
-打开 [联调测试台](http://localhost:5173/app-auth-tester.html)，后端地址填写 `http://localhost:8001`，工具自动附加 `/api/v1/app`。也可使用 IDE 63342 端口预览，默认 CORS 已放行 `localhost`、`127.0.0.1` 的 5173 和 63342 来源。
+打开 [联调测试台](http://localhost:5173/user-auth-tester.html)，后端地址填写 `http://localhost:8001`，工具自动附加 `/api/v1/user`。也可使用 IDE 63342 端口预览，默认 CORS 已放行 `localhost`、`127.0.0.1` 的 5173 和 63342 来源。
 
 若 5173 已由前端占用，可改用其他端口，并将实际来源添加到 `CORS_ORIGINS` 后重启后端；例如 5174 对应 `http://localhost:5174`。不要通过 `file://` 打开。显式设置的 CORS 列表会覆盖默认值，必须包含页面实际使用的协议、主机和端口。Compose 使用同源代理，默认 `CORS_ORIGINS=[]`，API 8001 端口不向宿主机发布。
 

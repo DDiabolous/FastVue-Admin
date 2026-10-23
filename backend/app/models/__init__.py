@@ -6,13 +6,13 @@ from app.models.admin.dictionary import Dictionary
 from app.models.admin.roles import AdminRole
 from app.models.admin.settings import SystemSettings
 from app.models.admin.accounts import AdminAccount
-from app.models.app.accounts import AppAccount
+from app.models.user.accounts import UserAccount
 
 __all__ = [
     'Base',
     'utcnow',
     'AdminAccount',
-    'AppAccount',
+    'UserAccount',
     'AdminRole',
     'AdminSession',
     'AdminLoginBucket',

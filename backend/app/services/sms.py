@@ -43,7 +43,7 @@ class HttpSmsSender:
 
 
 class MockSmsSender:
-    """联调模式不调用网关；任意六位数字校验由 AppAuthStore 处理。"""
+    """联调模式不调用网关；任意六位数字校验由 UserAuthStore 处理。"""
 
     async def send(self, phone, scene, code):
         return None

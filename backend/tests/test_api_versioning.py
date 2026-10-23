@@ -12,8 +12,8 @@ async def test_unversioned_business_routes_and_unknown_versions_are_not_exposed(
         '/api/v1/auth/me',
         '/api/v1/users',
         '/api/v1/roles',
-        '/api/v1/user/me',
-        '/api/v1/user/auth/login',
+        '/api/v1/app/me',
+        '/api/v1/app/auth/login',
     ]:
         method = 'POST' if path.endswith('/login') else 'GET'
         response = await client.request(method, path)
