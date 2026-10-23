@@ -14,12 +14,10 @@
         </el-form-item>
       </el-form>
       <TableToolbar
-        :loading="loading"
         :total="total"
         :columns="columns"
         v-model:visible-columns="visibleColumns"
         @reset-columns="table.resetColumns"
-        @refresh="load"
       />
       <el-alert v-if="error" :title="error" type="error" :closable="false" />
       <el-table border v-loading="loading" :data="rows" stripe @header-dragend="table.resize">

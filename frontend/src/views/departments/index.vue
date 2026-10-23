@@ -33,12 +33,10 @@
         </template>
       </FilterPanel>
       <TableToolbar
-        :loading="tableLoading"
         :total="businessTotal"
         :columns="businessTable.columns"
         v-model:visible-columns="businessTable.visible.value"
         @reset-columns="businessTable.resetColumns"
-        @refresh="loadDeptData"
       >
         <el-button type="primary" :icon="Plus" @click="openCreateModal(null)">
           新增部门

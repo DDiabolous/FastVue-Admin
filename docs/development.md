@@ -35,7 +35,7 @@
 ## 复用列表与表单
 
 - `PageContainer`：标题、说明、页面操作插槽。
-- `TableToolbar`：主要操作、选中数量和刷新入口。
+- `TableToolbar`：主要操作、选中数量、列设置与表格密度；刷新统一使用顶栏入口。
 - `StatusTag`：启用、停用状态展示。
 - `v-auth="'system:users:create'"`：控制按钮可见性；数组表示任一权限满足即可。
 

@@ -125,13 +125,11 @@
         </template>
       </FilterPanel>
       <TableToolbar
-        :loading="tableLoading"
         :total="filteredEquipments.length"
         :selected="selectedRows.length"
         :columns="businessTable.columns"
         v-model:visible-columns="businessTable.visible.value"
         @reset-columns="businessTable.resetColumns"
-        @refresh="loadEquipmentData"
       >
         <el-button type="primary" :icon="Plus" @click="openCreateModal">新增</el-button>
         <el-button

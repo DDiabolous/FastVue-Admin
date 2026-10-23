@@ -51,11 +51,9 @@
       <TableToolbar
         :selected="selected.length"
         :total="filtered.length"
-        :loading="preview === 'loading'"
         :columns="columns"
         v-model:visible-columns="visibleColumns"
         @reset-columns="table.resetColumns"
-        @refresh="refresh"
       >
         <el-button type="primary" :icon="Plus" @click="router.push('/examples/form')">
           新增项目

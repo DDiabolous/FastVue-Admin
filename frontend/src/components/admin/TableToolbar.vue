@@ -11,15 +11,6 @@
         条
       </span>
       <slot name="tools" />
-      <el-tooltip content="刷新数据">
-        <el-button
-          :loading="loading"
-          :icon="Refresh"
-          circle
-          aria-label="刷新"
-          @click="$emit('refresh')"
-        />
-      </el-tooltip>
       <el-tooltip content="表格密度" placement="top">
         <el-button ref="densityTriggerRef" circle aria-label="表格密度">
           <el-icon><Operation /></el-icon>
@@ -78,19 +69,17 @@
 </template>
 <script setup>
 import { ref } from 'vue'
-import { Refresh } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
 const app = useAppStore()
 const densityTriggerRef = ref(null)
 const columnTriggerRef = ref(null)
 const props = defineProps({
   selected: { type: Number, default: 0 },
-  loading: Boolean,
   total: Number,
   columns: { type: Array, default: () => [] },
   visibleColumns: { type: Array, default: () => [] },
 })
-const emit = defineEmits(['refresh', 'update:visibleColumns', 'reset-columns'])
+const emit = defineEmits(['update:visibleColumns', 'reset-columns'])
 function updateColumn(prop, checked) {
   emit(
     'update:visibleColumns',

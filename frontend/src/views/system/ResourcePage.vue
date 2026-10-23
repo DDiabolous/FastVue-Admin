@@ -11,12 +11,10 @@
         </el-form-item>
       </el-form>
       <TableToolbar
-        :loading="loading"
         :total="total"
         :columns="schema.columns"
         v-model:visible-columns="visibleColumns"
         @reset-columns="table.resetColumns"
-        @refresh="load"
       >
         <el-button v-auth="permission('create')" type="primary" @click="openEditor()">
           <el-icon><Plus /></el-icon>

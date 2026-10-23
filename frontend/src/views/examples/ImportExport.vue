@@ -43,7 +43,6 @@
       <TableToolbar
         :total="filteredData.length"
         :selected="selectedRows.length"
-        @refresh="handleFilter"
       >
         <el-button type="primary" icon="Upload" @click="openImportDialog">导入</el-button>
         <el-button icon="Download" @click="handleDownloadTemplate">下载模板</el-button>

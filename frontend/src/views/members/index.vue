@@ -141,13 +141,11 @@
         </template>
       </FilterPanel>
       <TableToolbar
-        :loading="tableLoading"
         :total="filteredMembers.length"
         :selected="selectedRows.length"
         :columns="businessTable.columns"
         v-model:visible-columns="businessTable.visible.value"
         @reset-columns="businessTable.resetColumns"
-        @refresh="loadMembersData"
       >
         <el-button type="primary" :icon="Plus" @click="openCreateModal">新增</el-button>
         <el-button
