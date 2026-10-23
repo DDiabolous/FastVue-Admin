@@ -15,20 +15,16 @@ DUMMY_HASH = hash_password(secrets.token_urlsafe(32))
 
 
 def profile(user: UserAccount):
-    expired = user.membership_expires_at is not None and user.membership_expires_at <= utcnow()
-    level = 'free' if expired else user.membership_level
     return {
         'id': user.id,
         'phone': user.phone,
         'nickname': user.nickname,
         'avatar_url': user.avatar_url,
-        'membership': {
-            'level': level,
-            'is_active': level != 'free',
-            'expires_at': user.membership_expires_at.isoformat()
-            if user.membership_expires_at
-            else None,
-        },
+        'gender': user.gender,
+        'birthday': user.birthday,
+        'city': user.city,
+        'email': user.email,
+        'bio': user.bio,
     }
 
 
@@ -151,6 +147,9 @@ async def delete_account(db, store, user, payload):
     user.password_hash = None
     user.nickname = '已注销用户'
     user.avatar_url = ''
-    user.membership_level = 'free'
-    user.membership_expires_at = None
+    user.gender = 'unspecified'
+    user.birthday = None
+    user.city = None
+    user.email = None
+    user.bio = None
     await db.commit()

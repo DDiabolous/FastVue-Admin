@@ -42,5 +42,5 @@ async def test_admin_table_rename_preserves_records_and_sessions(app, client):
 
     async with app.state.engine.begin() as db:
         await db.run_sync(verify)
-    await check_database(app, '0008')
+    await check_database(app, '0009')
     assert (await client.get('/api/v1/admin/me', headers=headers)).status_code == 200

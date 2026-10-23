@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 from dotenv import dotenv_values
-from sqlalchemy import insert, select, text
+from sqlalchemy import insert, inspect, select, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import get_settings
@@ -14,6 +14,7 @@ from app.db.session import create_database
 from app.models.user.accounts import UserAccount
 
 COLUMNS = tuple(column.name for column in UserAccount.__table__.columns)
+PROFILE_DEFAULTS = dict(gender='unspecified', birthday=None, city=None, email=None, bio=None)
 
 
 async def import_records(sessions, records):
@@ -22,6 +23,11 @@ async def import_records(sessions, records):
     async with sessions() as db, db.begin():
         await db.execute(text('SELECT pg_advisory_xact_lock(74192852)'))
         for record in records:
+            # Older source schemas predate optional profile fields.
+            record = {
+                **PROFILE_DEFAULTS,
+                **{name: value for name, value in record.items() if name in COLUMNS},
+            }
             if record['password_hash'] and not record['password_hash'].startswith('$argon2id$'):
                 raise ValueError('源数据包含非 Argon2id 密码，未导入')
             current = await db.get(UserAccount, record['id'])
@@ -49,10 +55,21 @@ async def migrate(source_url, dry_run=False):
             await connection.execute(
                 text('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
             )
+            source_columns = await connection.run_sync(
+                lambda db: {column['name'] for column in inspect(db).get_columns('users')}
+            )
+            if not (set(COLUMNS) - PROFILE_DEFAULTS.keys()) <= source_columns:
+                raise ValueError('源用户表缺少必要字段')
+            columns = [
+                name
+                if name in source_columns
+                else ("'unspecified' AS gender" if name == 'gender' else f'NULL AS {name}')
+                for name in COLUMNS
+            ]
             rows = (
                 (
                     await connection.execute(
-                        text('SELECT ' + ', '.join(COLUMNS) + ' FROM users ORDER BY id')
+                        text('SELECT ' + ', '.join(columns) + ' FROM users ORDER BY id')
                     )
                 )
                 .mappings()

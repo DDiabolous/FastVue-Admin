@@ -209,6 +209,19 @@
           </div>
         </div>
 
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+          <h2 class="text-sm font-bold text-slate-700">修改基础资料 · PATCH /me</h2>
+          <p class="text-xs text-slate-500">只更新提交的字段；null 或空字符串可清空资料，gender 清空后为 unspecified。</p>
+          <textarea id="profilePatch" rows="7" class="w-full border border-slate-300 rounded-lg p-2 font-mono text-sm">{
+  "gender": "unspecified",
+  "birthday": null,
+  "city": "杭州",
+  "email": null,
+  "bio": null
+}</textarea>
+          <button onclick="apiPatchMe()" class="w-full bg-blue-600 text-white rounded-lg py-2">保存基础资料</button>
+        </div>
+
       </div>
 
       <!-- 右侧：当前状态面板与报文监控 (5列) -->
@@ -340,7 +353,11 @@
         for (const [label, value] of [
           ['ID', state.user.id], ['Phone', state.user.phone],
           ['Nickname', state.user.nickname],
-          ['Membership', `${state.user.membership?.level || 'free'} (active: ${state.user.membership?.is_active})`]
+          ['Gender', state.user.gender ?? 'unspecified'],
+          ['Birthday', state.user.birthday ?? '未填写'],
+          ['City', state.user.city ?? '未填写'],
+          ['Email', state.user.email ?? '未填写'],
+          ['Bio', state.user.bio ?? '未填写']
         ]) {
           const row = document.createElement('div');
           row.textContent = `${label}: ${value}`;
@@ -557,6 +574,14 @@
       if (res.ok && res.data?.data) {
         saveTokens(undefined, undefined, res.data.data);
       }
+    }
+
+    async function apiPatchMe() {
+      let body;
+      try { body = JSON.parse(document.getElementById('profilePatch').value); }
+      catch { alert('资料必须是合法 JSON'); return; }
+      const res = await requestApi('/me', { method: 'PATCH', body, auth: true });
+      if (res.ok && res.data?.data) saveTokens(undefined, undefined, res.data.data);
     }
 
     // 8. 注销账号 POST /auth/delete-account

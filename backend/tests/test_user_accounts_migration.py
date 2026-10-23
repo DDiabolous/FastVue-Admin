@@ -1,13 +1,15 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
+import json
+
 import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import inspect, select, text
 
 from app.core.passwords import hash_password
-from app.migrate_user_accounts import import_records
+from app.migrate_user_accounts import import_records, PROFILE_DEFAULTS
 from app.models import AdminAccount
 from app.models.user.accounts import UserAccount
 
@@ -22,8 +24,6 @@ def record(uid, phone):
         avatar_url='',
         status='active',
         auth_version=3,
-        membership_level='premium',
-        membership_expires_at=now,
         created_at=now,
         updated_at=now,
         deleted_at=None,
@@ -63,10 +63,16 @@ async def test_user_table_rename_preserves_product_records(app):
         before = connection.execute(text('SELECT row_to_json(a)::text FROM users a')).scalar_one()
         command.downgrade(config, '0007')
         assert not inspect(connection).has_table('users')
-        assert (
-            connection.execute(text('SELECT row_to_json(a)::text FROM app_accounts a')).scalar_one()
-            == before
-        )
+        assert {
+            **PROFILE_DEFAULTS,
+            **json.loads(
+                connection.execute(
+                    text(
+                        "SELECT (to_jsonb(a) - 'membership_level' - 'membership_expires_at')::text FROM app_accounts a"
+                    )
+                ).scalar_one()
+            ),
+        } == json.loads(before)
         command.upgrade(config, 'head')
         assert not inspect(connection).has_table('app_accounts')
         assert (

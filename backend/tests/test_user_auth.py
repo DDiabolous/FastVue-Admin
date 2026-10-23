@@ -165,7 +165,7 @@ class UserAuthTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(tokens['refresh_expires_in'], 604800)
         info = (await self.me(tokens)).json()['data']
         self.assertEqual(info['phone'], '+86' + self.phone)
-        self.assertEqual(info['membership']['level'], 'free')
+        self.assertNotIn('membership', info)
         async with self.sessions() as db:
             user = await db.get(UserAccount, info['id'])
             self.assertTrue(user.password_hash.startswith('$argon2id$'))
@@ -622,14 +622,83 @@ class UserAuthTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('/api/v1/user/me', user_paths)
         self.assertIn('/api/v1/admin/auth/login', schema['paths'])
 
-    async def test_missing_configuration_and_membership_expiry(self):
+    async def test_profile_update_validation_isolation_and_deletion(self):
+        tokens = await self.register()
+        headers = self.auth(tokens)
+        initial = (await self.me(tokens)).json()['data']
+        self.assertEqual(initial['gender'], 'unspecified')
+        for field in ('birthday', 'city', 'email', 'bio'):
+            self.assertIsNone(initial[field])
+        changes = {
+            'gender': 'female',
+            'birthday': '2000-02-29',
+            'city': ' 杭州 ',
+            'email': ' person@example.com ',
+            'bio': ' 个人介绍 ',
+        }
+        updated = await self.client.patch(ROOT + '/me', json=changes, headers=headers)
+        self.assertEqual(updated.status_code, 200, updated.text)
+        info = updated.json()['data']
+        self.assertEqual(info['city'], '杭州')
+        self.assertEqual(info['email'], 'person@example.com')
+        self.assertEqual(info['birthday'], '2000-02-29')
+        self.assertEqual((await self.me(tokens)).json()['data'], info)
+        self.assertEqual(updated.headers['Cache-Control'], 'no-store')
+        partial = await self.client.patch(ROOT + '/me', json={'city': '上海'}, headers=headers)
+        self.assertEqual(partial.json()['data']['birthday'], '2000-02-29')
+        self.assertEqual(partial.json()['data']['email'], 'person@example.com')
+        for invalid in [
+            {'birthday': '2999-01-01'},
+            {'birthday': '2001-02-29'},
+            {'birthday': 946684800},
+            {'birthday': '2000-01-01T00:00:00Z'},
+            {'gender': 'invalid'},
+            {'email': 'invalid'},
+            {'city': 'x' * 101},
+            {'bio': 'x' * 501},
+            {'membership_level': 'premium'},
+            {'id': 'other'},
+        ]:
+            res = await self.client.patch(ROOT + '/me', json=invalid, headers=headers)
+            self.assertEqual(res.status_code, 422, res.text)
+        res = await self.client.patch(ROOT + '/me', json={'city': '杭州'})
+        self.assertEqual(res.status_code, 401)
+        self.phone = self.new_phone()
+        other = await self.register()
+        self.assertIsNone((await self.me(other)).json()['data']['email'])
+        res = await self.client.patch(
+            ROOT + '/me', json={'email': 'person@example.com'}, headers=self.auth(other)
+        )
+        self.assertEqual(res.status_code, 200, res.text)  # Contact emails need not be unique.
+        cleared = await self.client.patch(
+            ROOT + '/me',
+            json={
+                'gender': None,
+                'birthday': '',
+                'city': ' ',
+                'email': '',
+                'bio': None,
+            },
+            headers=headers,
+        )
+        self.assertEqual(cleared.status_code, 200, cleared.text)
+        self.assertEqual(cleared.json()['data']['gender'], 'unspecified')
+        for field in ('birthday', 'city', 'email', 'bio'):
+            self.assertIsNone(cleared.json()['data'][field])
+        await self.client.patch(ROOT + '/me', json=changes, headers=headers)
+        deleted = await self.client.post(
+            ROOT + '/auth/delete-account', json={'password': PASSWORD}, headers=headers
+        )
+        self.assertEqual(deleted.status_code, 200, deleted.text)
+        async with self.sessions() as db:
+            user = await db.get(UserAccount, tokens['user']['id'])
+            self.assertEqual(user.gender, 'unspecified')
+            for field in ('birthday', 'city', 'email', 'bio'):
+                self.assertIsNone(getattr(user, field))
+        self.assertEqual((await self.me(tokens)).status_code, 401)
+        self.assertEqual((await self.me(other)).status_code, 200)
+
+    async def test_missing_configuration(self):
         with patch.object(self.config, 'user_jwt_secret', None):
             res = await self.client.post(ROOT + '/auth/refresh', json={'refresh_token': 'invalid'})
             self.assertEqual(res.status_code, 503)
-        a = await self.register()
-        async with self.sessions() as db:
-            user = await db.get(UserAccount, a['user']['id'])
-            user.membership_level = 'premium'
-            user.membership_expires_at = utcnow() - timedelta(seconds=1)
-            await db.commit()
-        self.assertEqual((await self.me(a)).json()['data']['membership']['level'], 'free')

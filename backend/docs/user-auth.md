@@ -144,7 +144,11 @@ Content-Type: application/json
       "phone":"+8613900000000",
       "nickname":"用户0000",
       "avatar_url":"",
-      "membership":{"level":"free","is_active":false,"expires_at":null}
+      "gender":"unspecified",
+      "birthday":null,
+      "city":null,
+      "email":null,
+      "bio":null
     }
   }
 }
@@ -201,9 +205,29 @@ Authorization: Bearer <access_token>
 Authorization: Bearer <access_token>
 ```
 
-返回与登录 `user` 相同的资料结构，包括昵称、头像、手机号和会员状态。过期会员按免费状态返回。
+返回与登录 `user` 相同的资料结构，包括昵称、头像、手机号、性别、生日、城市、联系邮箱和简介。
 此接口校验 JWT 签名、固定 HS256 算法、issuer、audience、scope、令牌类型、有效期、必要 claims，
 并检查数据库账号状态/认证版本与 Redis 当前设备会话。App 令牌无法调用管理接口，后台令牌也无法用于 App。
+
+### 修改本人基础资料
+
+`PATCH /api/v1/user/me`，携带产品用户访问令牌，只更新请求中实际提交的字段，返回完整用户资料。
+
+```json
+{"gender":"female","birthday":"2000-02-29","city":"杭州","email":"person@example.com","bio":"个人介绍"}
+```
+
+| 字段 | 类型 | 约束及默认值 |
+| --- | --- | --- |
+| `gender` | 字符串 | unspecified（默认） / male / female / other；null 或空字符串重置为 unspecified |
+| `birthday` | 日期或 null | 严格 YYYY-MM-DD，不能晚于服务器当天，默认 null |
+| `city` | 字符串或 null | 最多 100 字符，仅存城市名称，默认 null |
+| `email` | 字符串或 null | 合法邮箱，最多 254 字符，不唯一、不用于登录，默认 null |
+| `bio` | 字符串或 null | 最多 500 字符，默认 null |
+
+城市、邮箱和简介去除首尾空白，空字符串转为 null；生日用 null 或空字符串清空。未提交字段保持原值。
+只允许上述五个字段，不允许通过此接口修改账号身份、手机号、密码、状态或认证版本；验证失败返回 422。
+资料修改不撤销现有会话，接口仅更新当前登录账号，并与注销操作使用同一用户行锁。
 
 ## 8. 注销账号
 
@@ -226,7 +250,7 @@ Authorization: Bearer <access_token>
 ```
 
 两个字段必须且只能提供一个。验证失败会计入该手机号的登录失败锁定计数。
-确认后账号标记为 `deleted`、记录 `deleted_at`，移除手机号、昵称、头像及密码哈希，清除会员状态和全部 Redis 会话。
+确认后账号标记为 `deleted`、记录 `deleted_at`，移除手机号、昵称、头像及密码哈希，清除基础资料和全部 Redis 会话。
 本次实现立即注销，不设置冷静期；保留用户 ID 与注销时间以供关联记录审计。
 手机号释放后可重新注册，生成新用户 ID；历史令牌不能访问新账号。
 成功 `data:{"status":"deleted"}`。
@@ -295,7 +319,7 @@ uv run --locked python -m app.migrate_user_accounts --source-env /path/to/source
 uv run --locked python -m app.migrate_user_accounts --source-env /path/to/source/backend/.env
 ```
 
-保留用户 ID、Argon2id 哈希、手机号、会员资料、状态和时间。完整事务导入，完全一致的记录跳过，冲突拒绝并回滚，不覆盖目标数据。
+保留用户 ID、Argon2id 哈希、手机号、基础资料、状态和时间。旧数据源缺少新增资料字段时，性别补为 unspecified，其余补为 null；历史会员字段不再导入。完整事务导入，完全一致的记录跳过，冲突拒绝并回滚，不覆盖目标数据。
 源数据库只读，导入后保留源记录，确认切换前不删表。Redis 会话和验证码不迁移，用户需重新登录。
 
 ### 独立 HTML 联调工具
@@ -307,4 +331,6 @@ uv run --locked python -m app.migrate_user_accounts --source-env /path/to/source
 短信模拟模式默认关闭；如需本地模拟，应显式设置 `USER_SMS_MOCK_ENABLED=true`，生产环境禁止开启。
 工具将测试凭证保存在浏览器 localStorage，可点击“清空本地凭证”清理；请使用测试账号。
 
-产品接口现使用 `/api/v1/user/*`，原 `/api/v1/app/*` 返回 404；升级需执行迁移至 `0008`，不会重建或清空账号。JWT 内部 claims、签名密钥及 Redis 命名空间保持兼容，以保留现有会话。
+产品接口现使用 `/api/v1/user/*`，原 `/api/v1/app/*` 返回 404；升级需执行迁移至 `0009`，不会重建或清空账号。JWT 内部 claims、签名密钥及 Redis 命名空间保持兼容，以保留现有会话。
+
+迁移 `0009` 新增上述基础资料字段，已有账号回填默认值，并删除 `membership_level`、`membership_expires_at` 及其数据。接口不再返回 `membership`。降级只恢复历史会员字段的默认值，不能恢复已删除的会员数据。
