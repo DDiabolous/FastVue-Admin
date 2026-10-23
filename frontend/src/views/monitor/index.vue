@@ -217,9 +217,9 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Connection, Cpu, Download, DataBoard, Refresh } from '@element-plus/icons-vue'
 import { getSystemMonitorMetrics, addAuditLog } from '@/utils/mockData'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 
-const userStore = useUserStore()
+const userStore = useAdminStore()
 
 const metrics = reactive(getSystemMonitorMetrics())
 const flushLoading = ref(false)

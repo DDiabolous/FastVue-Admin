@@ -6,6 +6,8 @@ FastAPI + SQLAlchemy 2 异步 ORM + PostgreSQL 的通用后台核心。业务接
 
 先准备 PostgreSQL 并配置 `backend/.env`，以下命令在 `backend/` 执行：
 
+`DATABASE_URL` 为必填配置，不提供默认连接。可通过 `backend/.env` 或进程环境变量设置；缺失、空值或不支持的连接格式会阻止启动。配置有效后，启动过程还会检查数据库连接、迁移版本及初始化状态。
+
 | 场景 | 命令 |
 | --- | --- |
 | 首次准备 / 更新数据库 | `uv run --locked manage.py setup` |
@@ -15,6 +17,11 @@ FastAPI + SQLAlchemy 2 异步 ORM + PostgreSQL 的通用后台核心。业务接
 | 查看命令帮助 | `uv run --locked manage.py --help` |
 
 `setup` 合并迁移与按需初始化，重复执行不会重置账号。`dev` 默认开启重载，`serve` 默认关闭重载，二者默认监听 `127.0.0.1:8001` 并关闭代理头信任。
+
+后台账号存储在 `admin_accounts`，后台角色存储在 `admin_roles`；产品用户存储在 `app_accounts`。
+迁移 `0006` 将原 `users`、`roles` 表直接重命名，保留账号、角色和会话外键关系。
+升级已有环境时先停止后端服务，执行 `uv run --locked alembic upgrade head`，再启动新版后端。
+后台接口统一为 `/api/v1/admin/*`，产品接口统一为 `/api/v1/app/*`；保留 `system:users:*`、`system:roles:*` 权限键。迁移 `0007` 将产品用户表重命名为 `app_accounts`，后台会话与限流表重命名为 `admin_sessions`、`admin_login_buckets`。
 
 ## Python 环境与依赖
 
@@ -107,13 +114,13 @@ API 每次启动都会在接收请求前检查 PostgreSQL 连接、Alembic 迁�
 
 - 认证：Argon2id 密码哈希；高熵随机 Bearer Token；数据库只保存 Token 的 SHA-256 摘要，默认 8 小时过期。
 - 会话撤销：退出注销当前会话；修改/重置密码、禁用账号、切换角色撤销该用户全部会话；禁用角色撤销绑定用户会话。重新启用不会恢复旧 Token。
-- 权限：每次请求读取当前账号及角色，逐接口校验；角色权限修改在下一请求生效。前端已缓存的菜单权限在重新获取 `/auth/me` 后更新。
+- 权限：每次请求读取当前账号及角色，逐接口校验；角色权限修改在下一请求生效。前端已缓存的菜单权限在重新获取 `/admin/me` 后更新。
 - 授权范围：角色授权不得超过操作者已有权限，禁止维护权限更高的角色或用户，不能通过创建用户或角色获得 `*`。
 - 管理员保护：内置管理员账号与角色不可经通用 CRUD 修改或删除；个人资料和密码通过本人接口维护。
 - 数据完整性：账号、角色标识、字典类型与值的唯一性受数据库约束；被引用角色不可删除或改标识。
 - 登录限流：基于数据库、按真实来源 IP 计数，默认每 900 秒最多 10 次登录尝试，多个进程共享；达到限制返回 429 和 `Retry-After`。成功尝试也计入窗口。
 - 审计：服务端记录登录成功、失败、限流、退出及系统写操作。写操作与成功审计同事务提交；不保存密码、请求体或 Token，不提供清空日志接口。
-- 配置：`/settings/public` 仅公开应用名称与介绍，其余配置由后台权限控制。`registration` 表示备案信息，不是开放注册开关；本版不提供公开注册。
+- 配置：`/admin/settings/public` 仅公开应用名称与介绍，其余配置由后台权限控制。`registration` 表示备案信息，不是开放注册开关；本版不提供公开注册。
 - 事务：使用 PostgreSQL 事务级 advisory lock 协调授权读取和写操作，避免权限校验与修改之间的竞态。当前核心写请求串行，适合管理后台；扩展高吞吐业务时应拆分锁范围并补充并发测试。
 
 时间统一以 UTC ISO 8601 输出，列表按创建时间倒序及 ID 稳定排序；字典优先按 `sort` 升序。分页参数非法返回 422，唯一约束或引用冲突返回 409。数据库异常回滚，对外不暴露 SQL 或连接信息。
@@ -154,15 +161,34 @@ app/
   core/                       配置、安全、业务异常、响应及启动检查
   db/                         ORM 基类、连接池和请求会话管理
   api/
-    dependencies.py           HTTP 认证、权限及审计上下文适配
     router.py                 /api 下的版本路由汇总
     v1/
-      router.py               /v1 路由汇总
-      endpoints/              auth、users、roles、dictionary、settings、logs
-  models/                     按资源拆分数据库模型
-  schemas/                    按资源拆分输入、输出及分页响应契约
-  services/                   业务规则、授权范围、审计及事务提交
-  repositories/               查询、持久化及数据库约束操作
+      router.py               /v1 下的 admin/app 路由汇总
+      admin/
+        router.py             /api/v1/admin
+        dependencies.py       后台认证、权限及审计上下文
+        auth.py               /auth/*
+        accounts.py           /accounts/*
+        roles.py              /roles/*
+        profile.py            /me
+        dictionary.py         /dictionary/*
+        settings.py           /settings/*
+        logs.py               /logs
+      app/
+        router.py             /api/v1/app
+        dependencies.py       产品账号数据库会话
+        auth.py               /auth/*
+        profile.py            /me
+  models/admin/               后台账号、角色、会话及系统资源模型
+  models/app/                 产品账号模型
+  schemas/admin/              后台请求与响应契约
+  schemas/app/                产品认证及账号契约
+  schemas/common.py           共享输入类型及分页契约
+  services/admin/             后台业务、权限及审计
+  services/app/               产品认证及 Redis 会话
+  services/sms.py             短信网关适配
+  repositories/admin/         后台数据查询与持久化
+  repositories/base.py        通用 Repository 基类
   cli.py                      初始化和过期数据清理命令
 alembic/                      数据库版本迁移
 tests/                        PostgreSQL 与 API 契约测试
@@ -171,14 +197,20 @@ uv.lock                       uv 依赖锁文件
 .python-version               默认 Python 版本
 ```
 
+目录按账号域划分：例如 `/api/v1/admin/accounts` 对应 `api/v1/admin/accounts.py`，业务服务为 `services/admin/accounts.py`，模型为 `models/admin/accounts.py`。目录已表达业务域，文件名不重复添加 `admin_`、`app_`；类型仍使用 `AdminAccount`、`AppAccount`，避免跨域导入混淆。仅接口层保留版本目录，服务与模型可供后续 API 版本复用。
+
 API 路由仅处理参数、依赖和响应，具体业务由对应 Service 执行；Service 通过 Repository 访问数据库，并统一提交写操作及其审计日志。请求会话管理器负责异常回滚与释放连接，不再在路由和依赖中重复提交事务。业务错误通过 `core/errors.py` 的 `AppError` 表达，由 HTTP 层统一映射，Service 不依赖 FastAPI 的 Request 或 HTTPException。
 
 用户、角色、字典各有独立 Service 和 Repository，通用分页及 CRUD 流程可以复用基类；新增资源无需修改按资源名称分支的中心函数。用户列表批量查询角色，避免逐行查询。
 
-业务版本挂载在 `api/router.py`，当前为 `/api/v1`。将来新增 v2 时并行挂载新路由，按需增加新的请求/响应 Schema 或适配逻辑，复用业务服务和模型；`/api/health` 不随业务版本变化。Swagger 文档根据实际路由生成。本次仅重组代码与路由，原有数据、会话和 Alembic 版本无需迁移或重新初始化；旧业务 URL 返回 404。
+业务版本挂载在 `api/router.py`，当前为 `/api/v1`。将来新增 v2 时并行挂载新路由，按需增加新的请求/响应 Schema 或适配逻辑，复用业务服务和模型；`/api/health` 不随业务版本变化。Swagger 文档根据实际路由生成。升级需执行 Alembic 迁移至 `0007`，保留原有数据和会话；旧业务 URL 返回 404。
 
-新增权限时同步修改 `app/core/security.py` 与前端 `config/permissions.js`，为新模块增加模型、Schema、Service、路由、迁移及越权测试。菜单继续由前端代码声明，未提供动态菜单 CRUD。
+新增权限时同步修改 `app/core/admin_permissions.py` 与前端 `config/permissions.js`，为新模块增加模型、Schema、Service、路由、迁移及越权测试。菜单继续由前端代码声明，未提供动态菜单 CRUD。
 
 组织、设备、资产、会员和监控仍为 full 模式本地示例；多租户、数据范围权限、上传存储、工作流、支付、邮件与真实设备通信不在本版范围。
 
 采用 [MIT License](../LICENSE)。
+
+## 注册用户认证
+
+独立的 `/api/v1/app` 认证接口已迁入，使用 `app_accounts` 表，不授予后台角色，不改动管理页面。部署、命名和数据迁移见 [用户认证文档](docs/app-auth.md)。

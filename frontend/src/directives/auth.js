@@ -1,9 +1,9 @@
 import { watchEffect } from 'vue'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 const stops = new WeakMap()
 export const authDirective = {
   mounted(el, binding) {
-    const user = useUserStore()
+    const user = useAdminStore()
     stops.set(
       el,
       watchEffect(() => {
@@ -12,7 +12,7 @@ export const authDirective = {
     )
   },
   updated(el, binding) {
-    el.hidden = !useUserStore().can(binding.value)
+    el.hidden = !useAdminStore().can(binding.value)
   },
   unmounted(el) {
     stops.get(el)?.()

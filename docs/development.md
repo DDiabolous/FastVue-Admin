@@ -45,9 +45,9 @@
 
 ## 接入后端
 
-先按 [后端说明](../backend/README.md) 启动 PostgreSQL、执行迁移并初始化管理员。设置 `VITE_USE_MOCK=false` 和 `VITE_API_BASE_URL=/api/v1`，重启开发服务。Vite 已配置 `/api` 转发到 `http://127.0.0.1:8001`。默认 API 使用原生 fetch；接口方法位于 `src/api/system.js`，请求处理位于 `src/api/request.js`。
+先按 [后端说明](../backend/README.md) 启动 PostgreSQL、执行迁移并初始化管理员。设置 `VITE_USE_MOCK=false` 和 `VITE_API_BASE_URL=/api/v1`，重启开发服务。Vite 已配置 `/api` 转发到 `http://127.0.0.1:8001`。默认 API 使用原生 fetch；接口方法位于 `src/api/admin.js`，请求处理位于 `src/api/adminRequest.js`。
 
-真实请求按 `{ code: 200, message, data }` 解包。HTTP 或业务 401 会清理会话并返回登录；403 保留登录并展示操作错误。受保护路由初始化会通过 `/auth/me` 获取资料和权限。网络失败保留登录状态，显示错误，用户可重试。
+真实请求按 `{ code: 200, message, data }` 解包。HTTP 或业务 401 会清理会话并返回登录；403 保留登录并展示操作错误。受保护路由初始化会通过 `/admin/me` 获取资料和权限。网络失败保留登录状态，显示错误，用户可重试。
 
 实际部署时配置同源 `/api` 代理，或由后端允许所需的跨域来源。环境变量是公开的构建参数，不得填入服务端密钥。Web History 模式需要让前端路由回退到 `index.html`，并将 `/api` 单独转发到服务端。
 
@@ -61,7 +61,7 @@
 
 内置 admin 用户与角色受保护，个人资料和密码在个人中心修改。编辑用户可维护用户和字典，不能分配超出自身权限的角色。只读用户无法新增、编辑和删除。权限与角色状态修改后会影响 Mock API 的后续请求；核心后端在每次请求执行对应校验，使用数据库会话与服务端审计。
 
-旧页面 `views/users/index.vue`、`roles/index.vue`、`dictionary/index.vue`、`settings/index.vue`、`profile/index.vue` 已由 `views/system/` 替代且未注册路由，仅保留原始实现供迁移参考。新增功能应放在新目录，不再扩展旧页面。
+旧页面 `views/admin-accounts/index.vue`、`roles/index.vue`、`dictionary/index.vue`、`settings/index.vue`、`profile/index.vue` 已由 `views/system/` 替代且未注册路由，仅保留原始实现供迁移参考。新增功能应放在新目录，不再扩展旧页面。
 
 ## 验证
 
@@ -108,11 +108,11 @@ full 业务示例继续使用原有浏览器 Mock 数据，未接入核心后端
 
 ## 后端模块与接口版本
 
-核心后端按 `api → services → repositories → models` 分工，配置、异常、安全与启动检查在 `core/`，连接池与 ORM 基类在 `db/`。新增业务时分别添加模型、Schema、Repository、Service、v1 路由及迁移，在 `app/api/v1/router.py` 注册新路由。已有核心 CRUD 可参考用户或字典模块。
+核心后端按 `api → services → repositories → models` 分工，配置、异常、安全与启动检查在 `core/`，连接池与 ORM 基类在 `db/`。新增业务时分别添加模型、Schema、Repository、Service、v1 路由及迁移，按接口调用方在 `app/api/v1/admin/router.py` 或 `app/api/v1/app/router.py` 注册新路由。已有核心 CRUD 可参考用户或字典模块。
 
 Service 负责业务校验与事务提交，Repository 负责查询及持久化，不在 HTTP 路由中写 SQL。业务错误使用 `AppError`，成功写操作与审计日志在同一事务中提交。新增 API 版本时在 `app/api/router.py` 并行挂载版本路由，保留已发布版本的输入输出契约；API 版本与数据库迁移版本独立管理。
 
-当前业务 Base URL 为 `/api/v1`，健康检查仍为 `/api/health`。已有 `.env.local` 若覆盖为 `/api`，需要同步修改并重启 Vite。Mock 调用继续使用 `/auth/login` 等相对资源路径，其行为不受 HTTP 版本前缀影响。
+当前业务 Base URL 为 `/api/v1`，健康检查仍为 `/api/health`。已有 `.env.local` 若覆盖为 `/api`，需要同步修改并重启 Vite。Mock 调用继续使用 `/admin/auth/login` 等相对资源路径，其行为不受 HTTP 版本前缀影响。
 
 ## 开发示例复用
 

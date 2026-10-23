@@ -1,9 +1,9 @@
 import { computed, ref, watch } from 'vue'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 import { readPreference, writePreference } from '@/utils/preferences'
 
 export function useTablePreferences(name, columns) {
-  const user = useUserStore()
+  const user = useAdminStore()
   const key = `table:${user.userInfo?.id || 'default'}:${name}`
   const saved = readPreference(key, {})
   const allowed = columns.map((column) => column.prop)

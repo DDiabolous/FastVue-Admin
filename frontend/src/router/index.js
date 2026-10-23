@@ -4,13 +4,13 @@ import Layout from '@/layout/index.vue'
 import { modules } from '@/config/modules'
 import { appConfig } from '@/config/app'
 import { useTagsViewStore } from '@/stores/tagsView'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 
 export const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/login/index.vue'),
+    component: () => import('@/views/admin-login/index.vue'),
     meta: { title: '登录', public: true },
   },
   {
@@ -39,7 +39,7 @@ export const routes = [
 ]
 const router = createRouter({ history: createWebHistory(), routes })
 router.beforeEach(async (to) => {
-  const user = useUserStore()
+  const user = useAdminStore()
   if (to.meta.public) return true
   if (!user.token) return { path: '/login', query: { redirect: to.fullPath } }
   if (!user.loaded) {
@@ -61,8 +61,8 @@ router.afterEach((to) => {
   if (to.name && !to.meta.public && !String(to.name).startsWith('Error'))
     useTagsViewStore().addView(to)
 })
-window.addEventListener('auth-expired', () => {
-  useUserStore().clearSession()
+window.addEventListener('admin-auth-expired', () => {
+  useAdminStore().clearSession()
   if (router.currentRoute.value.path !== '/login')
     router.replace({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
 })

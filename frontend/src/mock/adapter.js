@@ -19,6 +19,9 @@ export function mockRequest(path, options = {}) {
 }
 
 async function handleMockRequest(path, { method = 'GET', body, token } = {}) {
+  if (!path.startsWith('/admin/')) fail(404, '接口不存在')
+  path = path.slice('/admin'.length)
+  path = path.replace(/^\/accounts(?=[/?]|$)/, '/users')
   const db = await readDatabase()
   const url = new URL(path, 'http://demo.local')
   const parts = url.pathname.split('/').filter(Boolean)
@@ -54,7 +57,7 @@ async function handleMockRequest(path, { method = 'GET', body, token } = {}) {
       fail(403, '没有操作权限')
     return db.roles.filter(canAssign).map(({ roleKey, roleName }) => ({ roleKey, roleName }))
   }
-  if (path === '/auth/me') return publicUser(db, user)
+  if (path === '/me' && method === 'GET') return publicUser(db, user)
   if (path === '/auth/sessions' && method === 'GET') {
     return Object.entries(db.sessions)
       .filter(([_, s]) => s.userId === user.id && s.expiresAt > Date.now())
@@ -81,7 +84,7 @@ async function handleMockRequest(path, { method = 'GET', body, token } = {}) {
     await writeDatabase(db)
     return null
   }
-  if (path === '/auth/profile' && method === 'PATCH') {
+  if (path === '/me' && method === 'PATCH') {
     if (body.realName !== undefined) user.realName = String(body.realName || user.username)
     if (body.email !== undefined) user.email = String(body.email || '')
     for (const field of ['gender', 'phone', 'location', 'bio']) {

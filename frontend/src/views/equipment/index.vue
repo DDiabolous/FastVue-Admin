@@ -826,10 +826,10 @@ import {
   Grid,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 import { getStoredEquipments, saveStoredEquipments, addAuditLog } from '@/utils/mockData'
 
-const userStore = useUserStore()
+const userStore = useAdminStore()
 
 // State
 const tableRef = ref()

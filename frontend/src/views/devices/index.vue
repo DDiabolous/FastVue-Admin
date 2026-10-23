@@ -704,9 +704,9 @@ import {
   Grid,
 } from '@element-plus/icons-vue'
 import { getStoredDevices, saveStoredDevices, addAuditLog } from '@/utils/mockData'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 
-const userStore = useUserStore()
+const userStore = useAdminStore()
 
 const tableRef = ref()
 const allDevices = ref([])

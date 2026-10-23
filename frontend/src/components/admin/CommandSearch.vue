@@ -64,10 +64,10 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { modules } from '@/config/modules'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 import { useAppStore } from '@/stores/app'
 const app = useAppStore(),
-  user = useUserStore(),
+  user = useAdminStore(),
   router = useRouter()
 const keyword = ref(''),
   input = ref(),

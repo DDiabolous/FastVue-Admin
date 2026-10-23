@@ -3,6 +3,7 @@ import logging
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
+from redis.exceptions import RedisError
 from starlette.exceptions import HTTPException
 
 
@@ -33,6 +34,10 @@ def register_exception_handlers(app):
     async def validation_error(request, exc):
         fields = ', '.join('.'.join(str(part) for part in error['loc']) for error in exc.errors())
         return error_response(422, f'参数不正确：{fields}')
+
+    @app.exception_handler(RedisError)
+    async def redis_error(request, exc):
+        return error_response(503, '认证缓存暂不可用，请稍后重试', {'Cache-Control': 'no-store'})
 
     @app.exception_handler(IntegrityError)
     async def conflict(request, exc):

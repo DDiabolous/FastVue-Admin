@@ -52,7 +52,7 @@ import { computed } from 'vue'
 import MenuNode from '@/components/admin/MenuNode.vue'
 import { menuGroups, modules } from '@/config/modules'
 import { appConfig } from '@/config/app'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 import { useRoute, useRouter } from 'vue-router'
 import { Management, Fold, Expand } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
@@ -61,7 +61,7 @@ const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 
-const userStore = useUserStore()
+const userStore = useAdminStore()
 const menuItems = computed(() => {
   const items = []
   for (const item of modules.filter((item) => userStore.can(item.permission))) {

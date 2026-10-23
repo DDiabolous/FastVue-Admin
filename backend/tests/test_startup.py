@@ -7,7 +7,7 @@ from sqlalchemy import delete, text, update
 
 from app.core.config import Settings
 from app.main import create_app
-from app.models import SystemSettings, User
+from app.models import SystemSettings, AdminAccount
 from app.core.readiness import DatabaseNotReady
 
 
@@ -27,7 +27,9 @@ async def test_startup_refuses_unready_database(app, client, state, monkeypatch)
         elif state == 'missing_settings':
             await db.execute(delete(SystemSettings))
         else:
-            await db.execute(update(User).where(User.builtin.is_(True)).values(status=0))
+            await db.execute(
+                update(AdminAccount).where(AdminAccount.builtin.is_(True)).values(status=0)
+            )
     assert (await client.get('/api/health')).status_code == 503
     dispose = AsyncMock(wraps=app.state.engine.dispose)
     monkeypatch.setattr(app.state, 'engine', SimpleNamespace(dispose=dispose))

@@ -1,6 +1,6 @@
 import { computed, watch, unref, onUnmounted } from 'vue'
 import { useTablePreferences } from './useTablePreferences'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 import { readPreference, writePreference } from '@/utils/preferences'
 
 // Keep rich business cell slots in the page while sharing table and filter preferences.
@@ -12,7 +12,7 @@ export function useBusinessTable(name, columns, options) {
       ...columns.filter((column) => column.locked).map((column) => column.prop),
     ]),
   ]
-  const user = useUserStore()
+  const user = useAdminStore()
   const key = `business:${user.userInfo?.id || 'default'}:${name}`
   const saved = readPreference(key, {})
   for (const [field, initial] of Object.entries(options.query)) {

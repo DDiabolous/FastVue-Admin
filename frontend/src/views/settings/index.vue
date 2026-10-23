@@ -393,9 +393,9 @@ import {
   getStoredLogs,
   addAuditLog
 } from '@/utils/mockData'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 
-const userStore = useUserStore()
+const userStore = useAdminStore()
 
 const activeTab = ref('mqtt')
 const saveLoading = ref(false)

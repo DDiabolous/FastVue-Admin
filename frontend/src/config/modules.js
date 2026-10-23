@@ -21,7 +21,7 @@ export const modules = [
   {
     path: '/users',
     name: 'Users',
-    title: '用户管理',
+    title: '后台账号',
     group: '系统管理',
     icon: 'User',
     permission: 'system:users:read',
@@ -31,7 +31,7 @@ export const modules = [
   {
     path: '/roles',
     name: 'Roles',
-    title: '角色管理',
+    title: '后台角色',
     group: '系统管理',
     icon: 'Stamp',
     permission: 'system:roles:read',
@@ -139,7 +139,7 @@ export const modules = [
     name: 'Profile',
     title: '个人中心',
     icon: 'Avatar',
-    component: () => import('@/views/system/Profile.vue'),
+    component: () => import('@/views/system/AdminProfile.vue'),
   },
   ...(appConfig.organization
     ? [

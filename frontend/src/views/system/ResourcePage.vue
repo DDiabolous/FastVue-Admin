@@ -150,11 +150,11 @@
 <script setup>
 import { computed, reactive, ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { resourceApi } from '@/api/system'
-import { request } from '@/api/request'
+import { resourceApi } from '@/api/admin'
+import { request } from '@/api/adminRequest'
 import { resources } from '@/config/resources'
 import { permissionOptions } from '@/config/permissions'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 import PageContainer from '@/components/admin/PageContainer.vue'
 import { useTablePreferences } from '@/composables/useTablePreferences'
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
@@ -164,7 +164,7 @@ import StatusTag from '@/components/admin/StatusTag.vue'
 const props = defineProps({ resource: { type: String, required: true } })
 const schema = resources[props.resource]
 const api = resourceApi(props.resource)
-const user = useUserStore()
+const user = useAdminStore()
 const table = useTablePreferences(props.resource, schema.columns)
 const { keyword, appliedKeyword, page, visible: visibleColumns } = table
 const total = ref(0),
@@ -244,7 +244,7 @@ async function openEditor(row) {
   if (props.resource === 'users') {
     try {
       // Assignable roles have a separate read contract; editors need no role-management permission.
-      roles.value = await request('/auth/roles')
+      roles.value = await request('/admin/auth/roles')
     } catch (err) {
       ElMessage.error(err.message)
       return

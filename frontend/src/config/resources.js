@@ -1,6 +1,6 @@
 export const resources = {
   users: {
-    title: '用户管理',
+    title: '后台账号',
     description: '维护后台登录账号及其角色。业务会员和客户数据由独立模块管理。',
     columns: [
       { prop: 'username', label: '账号' },
@@ -18,7 +18,7 @@ export const resources = {
     defaults: { username: '', realName: '', email: '', role: 'viewer', password: '', status: 1 },
   },
   roles: {
-    title: '角色管理',
+    title: '后台角色',
     description: '通过权限码统一控制菜单访问和页面操作。数据范围授权由接入的后端扩展。',
     columns: [
       { prop: 'roleName', label: '角色名称' },

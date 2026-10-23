@@ -4,7 +4,7 @@
 
 通过本教程，你将掌握与当前项目架构完全一致的规范实践：
 1. **数据库层**：定义继承 `Record, Base` 的 SQLAlchemy ORM 实体，并生成 Alembic 迁移；
-2. **后端服务层**：编写 Pydantic Schema、基于 `app.api.dependencies` 的 `require` 鉴权与 CRUD 路由；
+2. **后端服务层**：编写 Pydantic Schema、基于 `app.api.v1.admin.dependencies` 的 `require` 鉴权与 CRUD 路由；
 3. **路由注册**：在 `backend/app/api/v1/router.py` 中挂载版本化路由；
 4. **前端接口层**：使用项目原生的 `request(path, options)` 封装 API 并获取解包数据；
 5. **前端交互层**：利用 `PageContainer`、`FilterPanel`（遵循 `:model` 契约）、`StatusTag` 及 `v-auth` 快速搭建列表与弹窗表单。
@@ -154,20 +154,20 @@ class NoticeRead(RecordOutput):
 ```
 
 ### 2. 编写 API 路由
-新建 `backend/app/api/v1/endpoints/notices.py`：
+新建 `backend/app/api/v1/admin/notices.py`：
 
 ```python
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 
-from app.api.dependencies import current_user, get_db, require
+from app.api.v1.admin.dependencies import get_current_admin, get_db, require
 from app.core.errors import AppError
 from app.core.responses import ok
 from app.models.notice import Notice
 from app.schemas.common import Envelope, PageResult
 from app.schemas.notice import NoticeCreate, NoticeRead, NoticeUpdate
 
-router = APIRouter(prefix='/notices', tags=['v1 · 公告管理'])
+router = APIRouter(prefix='/admin/notices', tags=['v1 · 公告管理'])
 
 
 @router.get(
@@ -204,7 +204,7 @@ async def list_notices(
     response_model=Envelope[NoticeRead],
     dependencies=[Depends(require('system:notice:create'))],
 )
-async def create_notice(body: NoticeCreate, principal=Depends(current_user), db=Depends(get_db)):
+async def create_notice(body: NoticeCreate, principal=Depends(get_current_admin), db=Depends(get_db)):
     notice = Notice(**body.model_dump(), creator=principal.user.username)
     db.add(notice)
     await db.commit()
@@ -243,12 +243,12 @@ async def delete_notice(id: str, db=Depends(get_db)):
 ```
 
 ### 3. 注册子路由
-在 `backend/app/api/v1/router.py` 中引入并挂载：
+在 `backend/app/api/v1/admin/router.py` 中引入并挂载：
 
 ```python
-from app.api.v1.endpoints import auth, dictionary, logs, roles, settings, users, notices
+from . import notices
 
-# 在已有路由后添加：
+# 在 admin/router.py 中添加：
 router.include_router(notices.router)
 ```
 
@@ -260,18 +260,18 @@ router.include_router(notices.router)
 新建 `frontend/src/api/notice.js`（使用项目原生 `request(path, options)` 风格）：
 
 ```javascript
-import { request } from './request.js'
+import { request } from './adminRequest.js'
 
 export const noticeApi = {
   list: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([_, v]) => v !== undefined && v !== '' && v !== null),
     ).toString()
-    return request(`/notices${query ? `?${query}` : ''}`)
+    return request(`/admin/notices${query ? `?${query}` : ''}`)
   },
-  create: (body) => request('/notices', { method: 'POST', body }),
-  update: (id, body) => request(`/notices/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
-  remove: (id) => request(`/notices/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  create: (body) => request('/admin/notices', { method: 'POST', body }),
+  update: (id, body) => request(`/admin/notices/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
+  remove: (id) => request(`/admin/notices/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 }
 ```
 

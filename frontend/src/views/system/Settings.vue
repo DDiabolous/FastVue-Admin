@@ -50,7 +50,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { settingsApi } from '@/api/system'
+import { settingsApi } from '@/api/admin'
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 import PageContainer from '@/components/admin/PageContainer.vue'
 const form = reactive({ siteName: '', description: '', contactEmail: '', registration: '' })

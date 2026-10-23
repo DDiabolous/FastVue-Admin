@@ -154,7 +154,7 @@
 </template>
 <script setup>
 import { computed, ref } from 'vue'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 import { useTagsViewStore } from '@/stores/tagsView'
 import { useAppStore } from '@/stores/app'
 import { appConfig } from '@/config/app'
@@ -162,7 +162,7 @@ import { modules } from '@/config/modules'
 import PageContainer from '@/components/admin/PageContainer.vue'
 import DashboardKpis from './components/DashboardKpis.vue'
 import DashboardCharts from './components/DashboardCharts.vue'
-const user = useUserStore(),
+const user = useAdminStore(),
   tags = useTagsViewStore(),
   app = useAppStore()
 const helpVisible = ref(false)

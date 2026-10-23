@@ -33,7 +33,7 @@
   "logger": "fastvue.error",
   "request_id": "c4b18f3a9e2d4081b23f8510a72d9b6e",
   "method": "POST",
-  "path": "/api/v1/system/users",
+  "path": "/api/v1/admin/accounts",
   "client_ip": "192.168.1.100",
   "operator": "admin",
   "status_code": 500,

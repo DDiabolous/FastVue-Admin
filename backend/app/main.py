@@ -32,6 +32,10 @@ def create_app(config=None):
             )
             yield
         finally:
+            redis = getattr(app.state, 'redis', None)
+            if redis is not None:
+                await redis.aclose()
+                app.state.redis = None
             await app.state.engine.dispose()
 
     app = FastAPI(title='FastVue-Admin API', version='1.0.0', lifespan=lifespan)
@@ -43,6 +47,9 @@ def create_app(config=None):
         request.state.request_id = request_id
         response = await call_next(request)
         response.headers['X-Request-ID'] = request_id
+        if request.url.path.startswith('/api/v1/app/'):
+            response.headers['Cache-Control'] = 'no-store'
+            response.headers['Pragma'] = 'no-cache'
         return response
 
     app.add_middleware(
@@ -51,7 +58,7 @@ def create_app(config=None):
         allow_credentials=False,
         allow_methods=['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
         allow_headers=['Authorization', 'Content-Type', 'X-Request-ID'],
-        expose_headers=['X-Request-ID'],
+        expose_headers=['X-Request-ID', 'Retry-After'],
     )
 
     register_exception_handlers(app)

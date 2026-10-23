@@ -299,9 +299,9 @@ import {
   Delete,
 } from '@element-plus/icons-vue'
 import { getStoredDepartments, saveStoredDepartments, addAuditLog } from '@/utils/mockData'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 
-const userStore = useUserStore()
+const userStore = useAdminStore()
 
 const treeTableRef = ref(null)
 const allDepts = ref([])

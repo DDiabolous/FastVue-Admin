@@ -53,7 +53,7 @@
 </template>
 <script setup>
 import { ref, onMounted } from 'vue'
-import { resourceApi } from '@/api/system'
+import { resourceApi } from '@/api/admin'
 import PageContainer from '@/components/admin/PageContainer.vue'
 import { useTablePreferences } from '@/composables/useTablePreferences'
 import TableEmpty from '@/components/admin/TableEmpty.vue'

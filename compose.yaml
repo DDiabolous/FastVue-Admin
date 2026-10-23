@@ -1,4 +1,16 @@
 services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   db:
     image: postgres:17-alpine
     environment:
@@ -22,6 +34,15 @@ services:
     environment: &api_environment
       DATABASE_URL: postgresql+asyncpg://fastvue:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/fastvue
       CORS_ORIGINS: '[]'
+      ENVIRONMENT: production
+      REDIS_URL: redis://redis:6379/0
+      USER_JWT_SECRET: ${USER_JWT_SECRET:-}
+      USER_JWT_ISSUER: ws-fastvue-user
+      USER_AUTH_REDIS_PREFIX: fastvue:user:auth
+      USER_REFRESH_TOKEN_DAYS: ${USER_REFRESH_TOKEN_DAYS:-7}
+      USER_SMS_MOCK_ENABLED: ${USER_SMS_MOCK_ENABLED:-false}
+      SMS_GATEWAY_URL: ${SMS_GATEWAY_URL:-}
+      SMS_GATEWAY_TOKEN: ${SMS_GATEWAY_TOKEN:-}
     networks: [backend]
     depends_on:
       db:
@@ -44,10 +65,13 @@ services:
     # Only the trusted Compose network can reach this port; nginx replaces XFF.
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--proxy-headers", "--forwarded-allow-ips", "*"]
     environment: *api_environment
-    networks: [backend]
+    # Dedicated outbound network permits HTTPS SMS gateways without exposing a host port.
+    networks: [backend, api_egress]
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/health')"]
       interval: 10s
@@ -66,6 +90,8 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
 networks:
+  api_egress: {}
   backend:
     internal: true

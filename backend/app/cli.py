@@ -11,9 +11,17 @@ from pydantic import ValidationError
 from sqlalchemy import delete, select, text
 
 from .core.config import get_settings
-from .core.security import hash_password
+from .core.passwords import hash_password
 from .db.session import create_database
-from .models import Dictionary, LoginBucket, Role, Session, SystemSettings, User, utcnow
+from .models import (
+    Dictionary,
+    AdminLoginBucket,
+    AdminRole,
+    AdminSession,
+    SystemSettings,
+    AdminAccount,
+    utcnow,
+)
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 
@@ -37,9 +45,11 @@ async def initialize(sessions, password, demo=False):
         raise ValueError('管理员密码需为 8–128 位')
     async with sessions() as db, db.begin():
         await db.execute(text('SELECT pg_advisory_xact_lock(74192851)'))
-        if await db.scalar(select(User.id).where(User.builtin.is_(True))):
+        if await db.scalar(select(AdminAccount.id).where(AdminAccount.builtin.is_(True))):
             return False  # Repeat initialization never resets credentials or app data.
-        if await db.scalar(select(Role.id).limit(1)) or await db.scalar(select(User.id).limit(1)):
+        if await db.scalar(select(AdminRole.id).limit(1)) or await db.scalar(
+            select(AdminAccount.id).limit(1)
+        ):
             raise ValueError('数据库中已有账号或角色，请勿重复导入初始数据')
         editor = [
             f'system:{resource}:{action}'
@@ -48,9 +58,9 @@ async def initialize(sessions, password, demo=False):
         ]
         db.add_all(
             [
-                Role(roleKey='admin', roleName='管理员', permissions=['*'], builtin=True),
-                Role(roleKey='editor', roleName='编辑', permissions=editor),
-                Role(
+                AdminRole(roleKey='admin', roleName='管理员', permissions=['*'], builtin=True),
+                AdminRole(roleKey='editor', roleName='编辑', permissions=editor),
+                AdminRole(
                     roleKey='viewer',
                     roleName='只读用户',
                     permissions=['system:users:read', 'system:dictionary:read'],
@@ -59,7 +69,7 @@ async def initialize(sessions, password, demo=False):
         )
         await db.flush()
         db.add(
-            User(
+            AdminAccount(
                 username='admin',
                 realName='管理员',
                 role='admin',
@@ -70,13 +80,13 @@ async def initialize(sessions, password, demo=False):
         if demo:
             db.add_all(
                 [
-                    User(
+                    AdminAccount(
                         username='editor',
                         realName='编辑用户',
                         role='editor',
                         password_hash=hash_password('editor123'),
                     ),
-                    User(
+                    AdminAccount(
                         username='viewer',
                         realName='只读用户',
                         role='viewer',
@@ -100,7 +110,9 @@ async def run(args):
     try:
         if args.command in {'init', 'setup'}:
             async with sessions() as db:
-                initialized = await db.scalar(select(User.id).where(User.builtin.is_(True)))
+                initialized = await db.scalar(
+                    select(AdminAccount.id).where(AdminAccount.builtin.is_(True))
+                )
             if initialized:
                 print('已初始化，未修改现有数据或密码')
                 return
@@ -114,10 +126,10 @@ async def run(args):
         else:
             async with sessions() as db, db.begin():
                 await db.execute(text('SELECT pg_advisory_xact_lock(74192851)'))
-                await db.execute(delete(Session).where(Session.expires_at <= utcnow()))
+                await db.execute(delete(AdminSession).where(AdminSession.expires_at <= utcnow()))
                 await db.execute(
-                    delete(LoginBucket).where(
-                        LoginBucket.started_at
+                    delete(AdminLoginBucket).where(
+                        AdminLoginBucket.started_at
                         < utcnow() - timedelta(seconds=config.login_window_seconds)
                     )
                 )
@@ -141,6 +153,8 @@ def main():
     args = parser.parse_args()
     try:
         if args.command in {'dev', 'serve'}:
+            # Validate before starting the development reloader or binding a port.
+            get_settings()
             import uvicorn
 
             uvicorn.run(
@@ -155,7 +169,14 @@ def main():
         if args.command == 'setup':
             migrate_database()
         asyncio.run(run(args))
-    except ValidationError:
+    except ValidationError as exc:
+        if any(
+            error['loc'] == ('database_url',) and error['type'] == 'missing'
+            for error in exc.errors()
+        ):
+            parser.exit(
+                1, '缺少 DATABASE_URL，请在 backend/.env 或进程环境变量中显式配置数据库连接\n'
+            )
         parser.exit(1, '配置无效，请检查 backend/.env 或进程环境变量\n')
     except ValueError as exc:
         parser.exit(1, f'{exc}\n')

@@ -769,10 +769,10 @@ import {
   InfoFilled,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 import { getStoredMembers, saveStoredMembers, addAuditLog } from '@/utils/mockData'
 
-const userStore = useUserStore()
+const userStore = useAdminStore()
 
 // State
 const tableRef = ref()

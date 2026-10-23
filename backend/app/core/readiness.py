@@ -26,7 +26,7 @@ async def check_database(app, expected_revision):
                 admin_ready = await db.scalar(
                     text("""
                     SELECT EXISTS (
-                        SELECT 1 FROM users u JOIN roles r ON u.role = r."roleKey"
+                        SELECT 1 FROM admin_accounts u JOIN admin_roles r ON u.role = r."roleKey"
                         WHERE u.builtin AND r.builtin AND u.status = 1 AND r.status = 1
                     )
                 """)

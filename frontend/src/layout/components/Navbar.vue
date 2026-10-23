@@ -226,12 +226,12 @@ import {
   InfoFilled,
 } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
-const userStore = useUserStore()
+const userStore = useAdminStore()
 
 const bellTriggerRef = ref(null)
 

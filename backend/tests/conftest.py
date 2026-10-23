@@ -7,6 +7,13 @@ from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 
+# The ASGI module constructs its app on import. Tests supply an explicit URL;
+# database fixtures still require TEST_DATABASE_URL and use isolated schemas.
+os.environ.setdefault(
+    'DATABASE_URL',
+    os.environ.get('TEST_DATABASE_URL') or 'postgresql+asyncpg://test:test@127.0.0.1:1/test',
+)
+
 from app.cli import initialize
 from app.core.config import Settings
 from app.main import create_app
@@ -60,7 +67,7 @@ async def client(app):
 
 async def sign_in(client, username='admin', password='AdminPass123!'):
     response = await client.post(
-        '/api/v1/auth/login', json={'username': username, 'password': password}
+        '/api/v1/admin/auth/login', json={'username': username, 'password': password}
     )
     assert response.status_code == 200, response.text
     return {'Authorization': 'Bearer ' + response.json()['data']['token']}

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Android App 账号认证接口联调台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+    pre { white-space: pre-wrap; word-wrap: break-word; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen p-4 md:p-6">
+
+  <div class="max-w-7xl mx-auto space-y-4">
+    <!-- 顶部全局配置栏 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <span class="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded">APP AUTH</span>
+        <h1 class="text-lg font-bold text-slate-900">Android App 认证接口联调测试台</h1>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 text-sm flex-1 justify-end">
+        <div class="flex items-center space-x-1">
+          <label class="text-slate-500 font-medium">后端地址:</label>
+          <input id="baseUrl" type="text" value="http://localhost:8001"
+            class="border border-slate-300 rounded px-2.5 py-1 w-48 focus:outline-none focus:border-blue-500 font-mono text-xs" />
+          <span class="text-xs text-slate-400 font-mono">/api/v1/app</span>
+        </div>
+
+        <div class="flex items-center space-x-1">
+          <label class="text-slate-500 font-medium">Device ID:</label>
+          <input id="deviceId" type="text" value="android-device-A"
+            class="border border-slate-300 rounded px-2.5 py-1 w-40 focus:outline-none focus:border-blue-500 font-mono text-xs" />
+        </div>
+
+        <label class="flex items-center space-x-1.5 cursor-pointer bg-slate-50 border border-slate-200 px-2.5 py-1 rounded">
+          <input id="autoRefreshToggle" type="checkbox" checked class="rounded text-blue-600" />
+          <span class="text-xs font-medium text-slate-700" title="模拟 Android 拦截器：收到 401 自动调用 /auth/refresh 并重试一次">401 自动无感刷新</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 主体网格布局 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- 左侧：8大接口操作面板 (7列) -->
+      <div class="lg:col-span-7 space-y-4">
+
+        <!-- 公共参数快捷栏（手机号 + 验证码生成） -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">⚡ 1. 发送验证码 (POST /auth/send-code) & 公共账号</h2>
+            <span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded">
+              模拟模式下任意6位数字(如 123456)直接通过
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+            <div class="sm:col-span-5">
+              <label class="block text-xs text-slate-500 mb-1">手机号 (phone - 11位或+86)</label>
+              <input id="globalPhone" type="text" value="13900000000" placeholder="13900000000"
+                class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-blue-500" />
+            </div>
+            <div class="sm:col-span-4">
+              <label class="block text-xs text-slate-500 mb-1">验证码场景 (scene)</label>
+              <select id="smsScene" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:border-blue-500">
+                <option value="register">register (注册)</option>
+                <option value="login">login (登录)</option>
+                <option value="reset_pwd">reset_pwd (重置密码)</option>
+                <option value="delete_account">delete_account (注销-需带Token)</option>
+              </select>
+            </div>
+            <div class="sm:col-span-3">
+              <button id="btnSendCode" onclick="apiSendCode()"
+                class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-medium py-1.5 px-3 rounded-lg text-sm transition">
+                发送验证码
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 认证与账户操作选项卡 -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="flex border-b border-slate-200 bg-slate-50 text-sm overflow-x-auto">
+            <button onclick="switchTab('login')" id="tab-login" class="px-4 py-3 tab-active whitespace-nowrap">3. 用户登录</button>
+            <button onclick="switchTab('register')" id="tab-register" class="px-4 py-3 text-slate-600 hover:text-slate-900 whitespace-nowrap">2. 用户注册</button>
+            <button onclick="switchTab('reset')" id="tab-reset" class="px-4 py-3 text-slate-600 hover:text-slate-900 whitespace-nowrap">5. 重置密码</button>
+            <button onclick="switchTab('delete')" id="tab-delete" class="px-4 py-3 text-rose-600 hover:text-rose-700 whitespace-nowrap">8. 注销账号</button>
+          </div>
+
+          <div class="p-5">
+            <!-- Tab: 3. 用户登录 -->
+            <div id="panel-login" class="space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono text-slate-400">POST /api/v1/app/auth/login</span>
+                <div class="flex space-x-3 text-xs">
+                  <label class="flex items-center space-x-1 cursor-pointer">
+                    <input type="radio" name="loginType" value="password" checked onchange="toggleLoginType()" />
+                    <span>密码登录 (password)</span>
+                  </label>
+                  <label class="flex items-center space-x-1 cursor-pointer">
+                    <input type="radio" name="loginType" value="sms" onchange="toggleLoginType()" />
+                    <span>短信登录 (sms)</span>
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label id="loginCredLabel" class="block text-xs text-slate-500 mb-1">登录密码 (credential，8-128字符，保留空格)</label>
+                <input id="loginCredential" type="text" value="YourPassword123!"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500" />
+              </div>
+              <button onclick="apiLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg text-sm transition">
+                立即登录 (获取双 Token)
+              </button>
+            </div>
+
+            <!-- Tab: 2. 用户注册 -->
+            <div id="panel-register" class="space-y-4 hidden">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-mono text-slate-400">POST /api/v1/app/auth/register</span>
+                <span class="text-xs text-emerald-600">注册即登录：成功直接返回双 Token 与 User</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-slate-500 mb-1">6位数字验证码 (code)</label>
+                  <input id="regCode" type="text" value="123456" maxlength="6"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono" />
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-500 mb-1">设置密码 (password，8-128位)</label>
+                  <input id="regPassword" type="text" value="YourPassword123!"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono" />
+                </div>
+              </div>
+              <button onclick="apiRegister()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg text-sm transition">
+                提交注册并自动登录
+              </button>
+            </div>
+
+            <!-- Tab: 5. 重置密码 -->
+            <div id="panel-reset" class="space-y-4 hidden">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-mono text-slate-400">POST /api/v1/app/auth/reset-password</span>
+                <span class="text-xs text-amber-600">成功后该用户所有设备的令牌立即失效</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-slate-500 mb-1">reset_pwd 验证码 (code)</label>
+                  <input id="resetCode" type="text" value="123456" maxlength="6"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono" />
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-500 mb-1">新密码 (new_password)</label>
+                  <input id="resetNewPassword" type="text" value="NewPassword123!"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono" />
+                </div>
+              </div>
+              <button onclick="apiResetPassword()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 rounded-lg text-sm transition">
+                确认重置密码
+              </button>
+            </div>
+
+            <!-- Tab: 8. 注销账号 -->
+            <div id="panel-delete" class="space-y-4 hidden">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono text-slate-400">POST /api/v1/app/auth/delete-account (需携带 Access Token)</span>
+                <div class="flex space-x-3 text-xs">
+                  <label class="flex items-center space-x-1 cursor-pointer">
+                    <input type="radio" name="deleteMode" value="password" checked onchange="toggleDeleteMode()" />
+                    <span>密码验证</span>
+                  </label>
+                  <label class="flex items-center space-x-1 cursor-pointer">
+                    <input type="radio" name="deleteMode" value="code" onchange="toggleDeleteMode()" />
+                    <span>验证码验证</span>
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label id="deleteInputLabel" class="block text-xs text-slate-500 mb-1">当前账号密码 (password - 两个字段必须且只能传一个)</label>
+                <input id="deleteInputValue" type="text" value="YourPassword123!"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono" />
+              </div>
+              <button onclick="apiDeleteAccount()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-medium py-2 rounded-lg text-sm transition">
+                ⚠️ 永久注销当前账号 (立即释放手机号)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 会话验证与生命周期控制 (接口 4, 6, 7) -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+          <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">🔐 会话受保护接口与令牌管理 (接口 4 / 6 / 7)</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button onclick="apiGetMe()" class="flex flex-col items-center justify-center p-3 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 transition">
+              <span class="font-bold text-sm">7. 获取当前用户</span>
+              <span class="text-xs font-mono text-blue-600 mt-0.5">GET /me</span>
+            </button>
+
+            <button onclick="apiRefreshToken()" class="flex flex-col items-center justify-center p-3 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 transition">
+              <span class="font-bold text-sm">4. 无感刷新令牌</span>
+              <span class="text-xs font-mono text-indigo-600 mt-0.5">POST /auth/refresh</span>
+            </button>
+
+            <button onclick="apiLogout()" class="flex flex-col items-center justify-center p-3 rounded-lg border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-800 transition">
+              <span class="font-bold text-sm">6. 退出当前设备</span>
+              <span class="text-xs font-mono text-slate-600 mt-0.5">POST /auth/logout</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 右侧：当前状态面板与报文监控 (5列) -->
+      <div class="lg:col-span-5 space-y-4">
+
+        <!-- 当前客户端本地会话状态 -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">📱 客户端凭证存储池 (Local State)</h2>
+            <button onclick="clearLocalTokens()" class="text-xs text-rose-600 hover:underline">清空本地凭证</button>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div>
+              <div class="flex justify-between text-slate-500 mb-0.5">
+                <span>Access Token (JWT, 15m):</span>
+                <span id="jwtPreview" class="font-mono text-emerald-600">未登录</span>
+              </div>
+              <input id="accessTokenInput" type="text" placeholder="可手动粘贴修改以测试无效/过期 Token..."
+                oninput="syncManualToken()"
+                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 font-mono text-xs text-slate-700" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-slate-500 mb-0.5">
+                <span>Refresh Token (Opaque, 7-30d):</span>
+              </div>
+              <input id="refreshTokenInput" type="text" placeholder="可手动粘贴修改以测试轮换冲突..."
+                oninput="syncManualToken()"
+                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 font-mono text-xs text-slate-700" />
+            </div>
+
+            <!-- 当前用户卡片 -->
+            <div id="userInfoCard" class="bg-slate-50 rounded-lg p-2.5 border border-slate-200 hidden">
+              <div class="font-semibold text-slate-700 mb-1">当前绑定用户 (User Profile):</div>
+              <div id="userInfoContent" class="font-mono text-xs text-slate-600 space-y-0.5"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 实时请求与响应报文检查器 -->
+        <div class="bg-slate-900 text-slate-100 rounded-xl shadow-sm p-4 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">📡 HTTP 报文实时监控</span>
+            <span id="httpStatusBadge" class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">等待请求...</span>
+          </div>
+
+          <div>
+            <div class="text-xs text-slate-400 mb-1">最近一次请求 (Request):</div>
+            <pre id="reqInspector" class="bg-slate-950 text-amber-300 p-2.5 rounded-lg text-xs font-mono max-h-36 overflow-y-auto">尚未发起请求</pre>
+          </div>
+
+          <div>
+            <div class="text-xs text-slate-400 mb-1">最近一次响应 (Response JSON):</div>
+            <pre id="resInspector" class="bg-slate-950 text-emerald-300 p-2.5 rounded-lg text-xs font-mono max-h-64 overflow-y-auto">尚未收到响应</pre>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 本地状态管理 (不使用 Cookie，纯 JSON 内存/Storage 收发)
+    // ==========================================
+    const state = {
+      accessToken: localStorage.getItem('app_access_token') || '',
+      refreshToken: localStorage.getItem('app_refresh_token') || '',
+      user: JSON.parse(localStorage.getItem('app_user') || 'null'),
+      refreshingPromise: null // Single-flight 并发刷新锁
+    };
+
+    function saveTokens(access, refresh, userObj = undefined) {
+      if (access !== undefined) {
+        state.accessToken = access;
+        localStorage.setItem('app_access_token', access);
+        document.getElementById('accessTokenInput').value = access;
+      }
+      if (refresh !== undefined) {
+        state.refreshToken = refresh;
+        localStorage.setItem('app_refresh_token', refresh);
+        document.getElementById('refreshTokenInput').value = refresh;
+      }
+      if (userObj !== undefined) {
+        state.user = userObj;
+        localStorage.setItem('app_user', JSON.stringify(userObj));
+      }
+      renderStateUI();
+    }
+
+    function syncManualToken() {
+      state.accessToken = document.getElementById('accessTokenInput').value;
+      state.refreshToken = document.getElementById('refreshTokenInput').value;
+      localStorage.setItem('app_access_token', state.accessToken);
+      localStorage.setItem('app_refresh_token', state.refreshToken);
+      renderStateUI();
+    }
+
+    function clearLocalTokens() {
+      saveTokens('', '', null);
+    }
+
+    function renderStateUI() {
+      document.getElementById('accessTokenInput').value = state.accessToken;
+      document.getElementById('refreshTokenInput').value = state.refreshToken;
+
+      const jwtPreview = document.getElementById('jwtPreview');
+      if (state.accessToken) {
+        try {
+          const payload = JSON.parse(atob(state.accessToken.split('.')[1]));
+          const expDate = payload.exp ? new Date(payload.exp * 1000).toLocaleTimeString() : '未知';
+          jwtPreview.textContent = `有效 (exp: ${expDate})`;
+          jwtPreview.className = 'font-mono text-emerald-600';
+        } catch {
+          jwtPreview.textContent = '非标准 JWT 格式';
+          jwtPreview.className = 'font-mono text-amber-600';
+        }
+      } else {
+        jwtPreview.textContent = '未持有';
+        jwtPreview.className = 'font-mono text-slate-400';
+      }
+
+      const card = document.getElementById('userInfoCard');
+      const content = document.getElementById('userInfoContent');
+      if (state.user) {
+        card.classList.remove('hidden');
+        content.replaceChildren();
+        for (const [label, value] of [
+          ['ID', state.user.id], ['Phone', state.user.phone],
+          ['Nickname', state.user.nickname],
+          ['Membership', `${state.user.membership?.level || 'free'} (active: ${state.user.membership?.is_active})`]
+        ]) {
+          const row = document.createElement('div');
+          row.textContent = `${label}: ${value}`;
+          content.appendChild(row);
+        }
+      } else {
+        card.classList.add('hidden');
+      }
+    }
+
+    // 初始化渲染
+    renderStateUI();
+
+    // ==========================================
+    // 底层 HTTP 请求封装 (严格遵守接口契约与 Single-Flight 401 刷新)
+    // ==========================================
+    function getApiBase() {
+      const base = document.getElementById('baseUrl').value.replace(/\/+$/, '');
+      return `${base}/api/v1/app`;
+    }
+
+    async function requestApi(path, { method = 'POST', body = null, auth = false, isRetry = false } = {}) {
+      const url = `${getApiBase()}${path}`;
+      const headers = {};
+      if (body !== null) {
+        headers['Content-Type'] = 'application/json';
+      }
+      if (auth && state.accessToken) {
+        headers['Authorization'] = `Bearer ${state.accessToken}`;
+      }
+
+      // 更新请求监控面板
+      document.getElementById('reqInspector').textContent =
+        `${method} ${url}\nHeaders: ${JSON.stringify(headers, null, 2)}${body ? '\n\nBody:\n' + JSON.stringify(body, null, 2) : ''}`;
+
+      try {
+        const response = await fetch(url, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : null
+        });
+
+        const retryAfter = response.headers.get('Retry-After');
+        let resData = null;
+        try {
+          resData = await response.json();
+        } catch {
+          resData = { raw: '非 JSON 响应' };
+        }
+
+        // 状态徽章更新
+        const badge = document.getElementById('httpStatusBadge');
+        badge.textContent = `HTTP ${response.status}${retryAfter ? ` (Retry-After: ${retryAfter}s)` : ''}`;
+        badge.className = response.ok
+          ? 'text-xs font-mono px-2 py-0.5 rounded bg-emerald-900 text-emerald-300'
+          : 'text-xs font-mono px-2 py-0.5 rounded bg-rose-900 text-rose-300';
+
+        document.getElementById('resInspector').textContent = JSON.stringify(resData, null, 2);
+
+        // 处理 429 冷却倒计时提示
+        if (response.status === 429 && retryAfter) {
+          startCooldownButton(parseInt(retryAfter, 10));
+        }
+
+        // Single-Flight 401 自动无感刷新逻辑 (仅针对需鉴权接口且非 /auth/refresh 本身)
+        const autoRefresh = document.getElementById('autoRefreshToggle').checked;
+        if (response.status === 401 && auth && !isRetry && autoRefresh && state.refreshToken && path !== '/auth/logout') {
+          console.log('[Single-Flight] 检测到 401，尝试自动刷新令牌并重发原请求...');
+          const refreshed = await performSingleFlightRefresh();
+          if (refreshed) {
+            return await requestApi(path, { method, body, auth: true, isRetry: true });
+          } else {
+            clearLocalTokens();
+          }
+        }
+
+        return { status: response.status, ok: response.ok, data: resData, retryAfter };
+      } catch (err) {
+        document.getElementById('httpStatusBadge').textContent = 'NETWORK ERROR';
+        document.getElementById('httpStatusBadge').className = 'text-xs font-mono px-2 py-0.5 rounded bg-rose-900 text-rose-300';
+        document.getElementById('resInspector').textContent = `网络请求失败 (请检查后端是否启动或 CORS 跨域配置):\n${err.message}`;
+        return { status: 0, ok: false, data: null };
+      }
+    }
+
+    async function performSingleFlightRefresh() {
+      if (!state.refreshingPromise) {
+        state.refreshingPromise = (async () => {
+          const res = await requestApi('/auth/refresh', {
+            method: 'POST',
+            body: { refresh_token: state.refreshToken },
+            auth: false,
+            isRetry: true
+          });
+          if (res.ok && res.data?.data?.access_token) {
+            saveTokens(res.data.data.access_token, res.data.data.refresh_token);
+            return true;
+          }
+          return false;
+        })().finally(() => {
+          state.refreshingPromise = null;
+        });
+      }
+      return await state.refreshingPromise;
+    }
+
+    // ==========================================
+    // 8 大接口具体调用实现 (严格禁止额外字段，密码不做 trim)
+    // ==========================================
+
+    // 1. 发送验证码 POST /auth/send-code
+    async function apiSendCode() {
+      const phone = document.getElementById('globalPhone').value.trim();
+      const scene = document.getElementById('smsScene').value;
+      // 文档规定：delete_account 场景需携带本人访问令牌，其余三个场景无需登录
+      const needAuth = (scene === 'delete_account');
+      const res = await requestApi('/auth/send-code', {
+        method: 'POST',
+        body: { phone, scene },
+        auth: needAuth
+      });
+      if (res.ok && res.data?.data?.retry_after) {
+        startCooldownButton(res.data.data.retry_after);
+      }
+    }
+
+    // 2. 用户注册 POST /auth/register
+    async function apiRegister() {
+      const phone = document.getElementById('globalPhone').value.trim();
+      const code = document.getElementById('regCode').value.trim();
+      const password = document.getElementById('regPassword').value; // 严格保留空格，不做 trim
+      const device_id = document.getElementById('deviceId').value.trim();
+
+      const res = await requestApi('/auth/register', {
+        method: 'POST',
+        body: { phone, code, password, device_id }
+      });
+
+      if (res.ok && res.data?.data) {
+        const d = res.data.data;
+        saveTokens(d.access_token, d.refresh_token, d.user);
+      }
+    }
+
+    // 3. 用户登录 POST /auth/login
+    async function apiLogin() {
+      const phone = document.getElementById('globalPhone').value.trim();
+      const login_type = document.querySelector('input[name="loginType"]:checked').value;
+      const credential = document.getElementById('loginCredential').value; // 密码保留空格
+      const device_id = document.getElementById('deviceId').value.trim();
+
+      const res = await requestApi('/auth/login', {
+        method: 'POST',
+        body: { phone, login_type, credential, device_id }
+      });
+
+      if (res.ok && res.data?.data) {
+        const d = res.data.data;
+        saveTokens(d.access_token, d.refresh_token, d.user);
+      }
+    }
+
+    // 4. 无感刷新 POST /auth/refresh
+    async function apiRefreshToken() {
+      const res = await requestApi('/auth/refresh', {
+        method: 'POST',
+        body: { refresh_token: state.refreshToken },
+        auth: false // 文档规定：无需访问令牌
+      });
+
+      if (res.ok && res.data?.data) {
+        const d = res.data.data;
+        saveTokens(d.access_token, d.refresh_token);
+      }
+    }
+
+    // 5. 重置密码 POST /auth/reset-password
+    async function apiResetPassword() {
+      const phone = document.getElementById('globalPhone').value.trim();
+      const code = document.getElementById('resetCode').value.trim();
+      const new_password = document.getElementById('resetNewPassword').value; // 保留空格
+
+      const res = await requestApi('/auth/reset-password', {
+        method: 'POST',
+        body: { phone, code, new_password }
+      });
+
+      if (res.ok) {
+        // 重置成功后全部设备会话失效，清空本地状态
+        clearLocalTokens();
+      }
+    }
+
+    // 6. 退出当前设备 POST /auth/logout
+    async function apiLogout() {
+      const res = await requestApi('/auth/logout', {
+        method: 'POST',
+        body: { refresh_token: state.refreshToken },
+        auth: true // 必须同时携带 Access Token 与 Refresh Token
+      });
+
+      if (res.ok) {
+        clearLocalTokens();
+      }
+    }
+
+    // 7. 获取当前用户 GET /me
+    async function apiGetMe() {
+      const res = await requestApi('/me', {
+        method: 'GET',
+        auth: true
+      });
+
+      if (res.ok && res.data?.data) {
+        saveTokens(undefined, undefined, res.data.data);
+      }
+    }
+
+    // 8. 注销账号 POST /auth/delete-account
+    async function apiDeleteAccount() {
+      const mode = document.querySelector('input[name="deleteMode"]:checked').value;
+      const val = document.getElementById('deleteInputValue').value;
+      // 文档规定：password 与 code 两个字段必须且只能提供一个
+      const body = mode === 'password' ? { password: val } : { code: val.trim() };
+
+      const res = await requestApi('/auth/delete-account', {
+        method: 'POST',
+        body,
+        auth: true
+      });
+
+      if (res.ok) {
+        clearLocalTokens();
+      }
+    }
+
+    // ==========================================
+    // UI 交互辅助函数
+    // ==========================================
+    function switchTab(tabName) {
+      ['login', 'register', 'reset', 'delete'].forEach(t => {
+        document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tabName);
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === tabName) {
+          btn.classList.add('tab-active');
+        } else {
+          btn.classList.remove('tab-active');
+        }
+      });
+    }
+
+    function toggleLoginType() {
+      const type = document.querySelector('input[name="loginType"]:checked').value;
+      const label = document.getElementById('loginCredLabel');
+      const input = document.getElementById('loginCredential');
+      if (type === 'sms') {
+        label.textContent = '6位短信验证码 (credential，模拟模式填 123456)';
+        input.value = '123456';
+      } else {
+        label.textContent = '登录密码 (credential，8-128字符，保留空格)';
+        input.value = 'YourPassword123!';
+      }
+    }
+
+    function toggleDeleteMode() {
+      const mode = document.querySelector('input[name="deleteMode"]:checked').value;
+      const label = document.getElementById('deleteInputLabel');
+      const input = document.getElementById('deleteInputValue');
+      if (mode === 'code') {
+        label.textContent = '注销验证码 (code - 真实模式需先在上方选 delete_account 发送)';
+        input.value = '123456';
+      } else {
+        label.textContent = '当前账号密码 (password - 两个字段必须且只能传一个)';
+        input.value = 'YourPassword123!';
+      }
+    }
+
+    let cooldownTimer = null;
+    function startCooldownButton(seconds) {
+      const btn = document.getElementById('btnSendCode');
+      clearInterval(cooldownTimer);
+      let remain = seconds;
+      btn.disabled = true;
+      btn.textContent = `冷却中 (${remain}s)`;
+      cooldownTimer = setInterval(() => {
+        remain--;
+        if (remain <= 0) {
+          clearInterval(cooldownTimer);
+          btn.disabled = false;
+          btn.textContent = '发送验证码';
+        } else {
+          btn.textContent = `冷却中 (${remain}s)`;
+        }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

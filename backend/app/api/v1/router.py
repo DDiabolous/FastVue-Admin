@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 
-from .endpoints import auth, dictionary, logs, roles, settings, users
+from .admin.router import router as admin_router
+from .app.router import router as app_router
 
 router = APIRouter(prefix='/v1')
-for module in (auth, users, roles, dictionary, settings, logs):
-    router.include_router(module.router)
+router.include_router(admin_router)
+router.include_router(app_router)
