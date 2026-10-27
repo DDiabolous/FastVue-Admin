@@ -68,13 +68,13 @@
         style="width: 100%"
       >
         <el-table-column type="selection" width="50" align="center" />
-        <el-table-column prop="id" label="工号" width="100" />
+        <el-table-column prop="id" label="工号" width="100" align="center" />
         <el-table-column prop="name" label="姓名" min-width="120" />
         <el-table-column prop="department" label="部门" min-width="140" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
-        <el-table-column prop="phone" label="手机号码" min-width="140" />
+        <el-table-column prop="phone" label="手机号码" min-width="140" align="center" />
         <el-table-column prop="address" label="通讯地址" min-width="180" show-overflow-tooltip />
-        <el-table-column label="在职状态" width="100">
+        <el-table-column label="在职状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === '在职' ? 'success' : 'info'" effect="light">
               {{ row.status }}

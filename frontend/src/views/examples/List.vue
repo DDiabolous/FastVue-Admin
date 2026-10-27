@@ -109,7 +109,7 @@
           @sort-change="sort = $event"
           @header-dragend="table.resize"
         >
-          <el-table-column type="selection" width="48" />
+          <el-table-column type="selection" width="48" align="center" />
           <el-table-column
             v-for="column in table.visibleColumns.value"
             :key="column.prop"
@@ -133,10 +133,12 @@
               <span v-else>{{ row[column.prop] }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="130" fixed="right">
+          <el-table-column label="操作" width="130" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button link type="primary" @click="detailId = row.id">详情</el-button>
-              <el-button link type="primary" @click="edit(row)">编辑</el-button>
+              <div class="table-op-btns">
+                <el-button link type="primary" size="small" @click="detailId = row.id">详情</el-button>
+                <el-button link type="primary" size="small" @click="edit(row)">编辑</el-button>
+              </div>
             </template>
           </el-table-column>
           <template #empty><TableEmpty :filtered="hasFilters" @reset="resetSearch" /></template>
@@ -261,7 +263,7 @@ const columns = [
   { prop: 'category', label: '分类', minWidth: 120 },
   { prop: 'owner', label: '负责人', minWidth: 100 },
   { prop: 'progress', label: '进度', minWidth: 150 },
-  { prop: 'status', label: '状态', minWidth: 100 },
+  { prop: 'status', label: '状态', minWidth: 100, align: 'center' },
 ]
 const table = useTablePreferences('example-projects', columns)
 const { page, visible: visibleColumns } = table
@@ -405,8 +407,8 @@ dd {
 .project-card-footer {
   display: flex;
   align-items: center;
-  justify-content: space-evenly;
-  gap: 12px;
+  justify-content: center;
+  gap: 16px;
   padding-top: 10px;
   border-top: 1px solid var(--border-light);
 }

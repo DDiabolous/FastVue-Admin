@@ -46,6 +46,13 @@
 .starter-page.example-page .project-details .el-descriptions__content {
   font-size: 13px;
 }
+.starter-page.example-page .table-op-btns {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
 @media (max-width: 767px) {
   .starter-page.example-page .el-card__header {
     padding: 16px 18px;

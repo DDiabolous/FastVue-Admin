@@ -52,17 +52,18 @@
           label="操作"
           width="135"
           fixed="right"
+          align="center"
         >
           <template #default="{ row }">
             <span v-if="isBuiltin(row)" class="starter-muted">内置</span>
-            <template v-else>
-              <el-button v-auth="permission('update')" link type="primary" @click="openEditor(row)">
+            <div v-else class="table-op-btns">
+              <el-button v-auth="permission('update')" link type="primary" size="small" @click="openEditor(row)">
                 编辑
               </el-button>
-              <el-button v-auth="permission('delete')" link type="danger" @click="remove(row)">
+              <el-button v-auth="permission('delete')" link type="danger" size="small" @click="remove(row)">
                 删除
               </el-button>
-            </template>
+            </div>
           </template>
         </el-table-column>
         <template #empty>

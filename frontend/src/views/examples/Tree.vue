@@ -80,11 +80,13 @@
             <el-table-column label="状态" width="100" align="center">
               <template #default="{ row }"><StatusTag :value="row.status" /></template>
             </el-table-column>
-            <el-table-column label="操作" width="170" fixed="right">
+            <el-table-column label="操作" width="170" fixed="right" align="center">
               <template #default="{ row }">
-                <el-button link type="primary" @click="editNode(null, row.id)">新增</el-button>
-                <el-button link type="primary" @click="editNode(row)">编辑</el-button>
-                <el-button link type="danger" @click="removeNode(row)">删除</el-button>
+                <div class="table-op-btns">
+                  <el-button link type="primary" size="small" @click="editNode(null, row.id)">新增</el-button>
+                  <el-button link type="primary" size="small" @click="editNode(row)">编辑</el-button>
+                  <el-button link type="danger" size="small" @click="removeNode(row)">删除</el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>

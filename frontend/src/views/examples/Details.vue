@@ -38,7 +38,7 @@
         <el-table :data="stages" border>
           <el-table-column prop="name" label="阶段" min-width="160" />
           <el-table-column prop="owner" label="负责人" min-width="100" />
-          <el-table-column label="状态" min-width="120">
+          <el-table-column label="状态" min-width="120" align="center">
             <template #default="{ row }">
               <el-tag :type="row.done ? 'success' : 'info'">
                 {{ row.done ? '已完成' : '待完成' }}
@@ -82,6 +82,7 @@ const stages = computed(() =>
 <style scoped>
 .detail-toolbar {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 12px;
   justify-content: space-between;
